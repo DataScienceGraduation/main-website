@@ -10,6 +10,8 @@ import {
   Button,
 } from "flowbite-react";
 
+import Image from "next/image";
+
 const inter = Inter({ subsets: ["latin"] });
 
 export default function RootLayout({
@@ -23,10 +25,12 @@ export default function RootLayout({
       <body className={inter.className}>
         <Navbar fluid rounded>
           <NavbarBrand href="#">
-            <img
-              src="https://placehold.co/100x100"
-              className="mr-3 h-6 sm:h-9"
+            <Image
+              src="https://placehold.co/50x50"
+              className="mr-3"
               alt="AutoML Logo"
+              width={50}
+              height={50}
             />
             <div>
               <span className="self-center whitespace-nowrap text-xl font-semibold text-gray-900">
@@ -37,7 +41,7 @@ export default function RootLayout({
               </p>
             </div>
           </NavbarBrand>
-          <div className="mx-auto text-center">
+          <div className="mx-auto text-center md:mx-0">
             <NavbarToggle />
             <NavbarCollapse>
               <Button color="success" href="#">
@@ -53,8 +57,10 @@ export default function RootLayout({
               <div>
                 <Footer.Brand
                   href="#"
-                  src="https://placehold.co/100x100"
+                  src="https://placehold.co/50x50"
                   alt="AutoML Logo"
+                  width={50}
+                  height={50}
                   name="AutoML"
                 />
               </div>

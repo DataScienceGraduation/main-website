@@ -3,6 +3,7 @@
 import React from "react";
 import { Navbar, Button, Card, Footer } from "flowbite-react";
 import { motion, useTransform, useScroll, useSpring } from "motion/react";
+import Image from "next/image";
 
 const fadeInUp = {
   hidden: { opacity: 0, y: 50 },
@@ -237,10 +238,12 @@ export default function Home() {
               transition={{ duration: 0.4 }}
             >
               <Card>
-                <img
+                <Image
                   src="https://placehold.co/600x600"
                   alt="Data Upload Interface"
                   className="mb-4 rounded-lg"
+                  width={600}
+                  height={600}
                 />
                 <h3 className="mb-2 text-2xl font-bold text-gray-800">
                   Data Upload
@@ -257,10 +260,12 @@ export default function Home() {
               transition={{ duration: 0.4, delay: 0.2 }}
             >
               <Card>
-                <img
+                <Image
                   src="https://placehold.co/600x600"
-                  alt="Model Configuration Interface"
+                  alt="Data Upload Interface"
                   className="mb-4 rounded-lg"
+                  width={600}
+                  height={600}
                 />
                 <h3 className="mb-2 text-2xl font-bold text-gray-800">
                   Model Configuration
@@ -277,10 +282,12 @@ export default function Home() {
               transition={{ duration: 0.4, delay: 0.4 }}
             >
               <Card>
-                <img
+                <Image
                   src="https://placehold.co/600x600"
-                  alt="Performance Dashboard Interface"
+                  alt="Data Upload Interface"
                   className="mb-4 rounded-lg"
+                  width={600}
+                  height={600}
                 />
                 <h3 className="mb-2 text-2xl font-bold text-gray-800">
                   Performance Dashboard
@@ -316,7 +323,6 @@ export default function Home() {
               cutting-edge AI and everyday business needs.
             </p>
           </div>
-          {/* placeholder image with motion.img and cool effects */}
           <motion.img
             src="https://placehold.co/600x600"
             alt="Our Mission: Democratize Machine Learning"
