@@ -24,7 +24,7 @@ export default function RootLayout({
         <Navbar fluid rounded>
           <NavbarBrand href="#">
             <img
-              src="https://via.placeholder.com/50"
+              src="https://placehold.co/100x100"
               className="mr-3 h-6 sm:h-9"
               alt="AutoML Logo"
             />
@@ -37,12 +37,14 @@ export default function RootLayout({
               </p>
             </div>
           </NavbarBrand>
-          <NavbarToggle />
-          <NavbarCollapse>
-            <Button color="success" href="#">
-              Login
-            </Button>
-          </NavbarCollapse>
+          <div className="mx-auto text-center">
+            <NavbarToggle />
+            <NavbarCollapse>
+              <Button color="success" href="#">
+                Login
+              </Button>
+            </NavbarCollapse>
+          </div>
         </Navbar>
         {children}
         <Footer container={true}>
@@ -51,7 +53,7 @@ export default function RootLayout({
               <div>
                 <Footer.Brand
                   href="#"
-                  src="https://via.placeholder.com/50"
+                  src="https://placehold.co/100x100"
                   alt="AutoML Logo"
                   name="AutoML"
                 />

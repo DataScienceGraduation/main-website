@@ -44,9 +44,9 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-gray-100">
       <section className="relative overflow-hidden bg-gradient-to-r from-blue-500 to-indigo-600 px-4 py-20 text-center">
-        <div className="mx-auto grid gap-8 md:grid-cols-2">
+        <div className="mx-auto grid grid-cols-2 gap-8">
           <motion.div
-            className="my-auto pb-16 md:pb-0 md:text-left"
+            className="my-auto text-left"
             variants={stagger}
             initial="hidden"
             animate="visible"
@@ -60,7 +60,7 @@ export default function Home() {
               Spend less time wrangling data and more time discovering
               breakthrough insights.
             </p>
-            <div className="flex justify-center space-x-6 md:justify-start">
+            <div className="flex justify-start space-x-6">
               <Button size="lg">Get Started</Button>
             </div>
           </motion.div>
@@ -238,7 +238,7 @@ export default function Home() {
             >
               <Card>
                 <img
-                  src="https://placehold.co/600x600"
+                  src="https://via.placeholder.com/600x400"
                   alt="Data Upload Interface"
                   className="mb-4 rounded-lg"
                 />
@@ -258,7 +258,7 @@ export default function Home() {
             >
               <Card>
                 <img
-                  src="https://placehold.co/600x600"
+                  src="https://via.placeholder.com/600x400"
                   alt="Model Configuration Interface"
                   className="mb-4 rounded-lg"
                 />
@@ -278,7 +278,7 @@ export default function Home() {
             >
               <Card>
                 <img
-                  src="https://placehold.co/600x600"
+                  src="https://via.placeholder.com/600x400"
                   alt="Performance Dashboard Interface"
                   className="mb-4 rounded-lg"
                 />
@@ -303,7 +303,7 @@ export default function Home() {
         viewport={{ once: true }}
         transition={{ duration: 1 }}
       >
-        <div className="mx-auto grid max-w-5xl gap-4 px-4 sm:px-6 md:grid-cols-3 lg:px-8">
+        <div className="mx-auto grid max-w-5xl grid-cols-3 gap-4 px-4 sm:px-6 lg:px-8">
           <div className="my-auto text-center md:col-span-2 md:text-left">
             <h2 className="mb-6 text-4xl font-bold text-gray-900">
               Our Mission to Democratize Machine Learning
