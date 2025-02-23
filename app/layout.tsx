@@ -1,3 +1,6 @@
+"use client";
+
+import React, { useState, useEffect } from "react";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import {
@@ -9,8 +12,9 @@ import {
   NavbarLink,
   Button,
 } from "flowbite-react";
-
 import Image from "next/image";
+import TransitionWrapper from "./TransitionWrapper";
+import router from "next/router";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -19,62 +23,90 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const [hasToken, setHasToken] = useState(false);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    setHasToken(!!token);
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    setHasToken(false);
+    router.push("/login");
+  };
+
   return (
     <html lang="en">
       <head></head>
       <body className={inter.className}>
         <Navbar fluid rounded>
-          <NavbarBrand href="#">
+          <NavbarBrand href="/">
             <Image
-              src="https://placehold.co/50x50"
+              src="/logo.svg"
               className="mr-3"
               alt="AutoML Logo"
-              width={50}
+              width={200}
               height={50}
             />
-            <div>
-              <span className="self-center whitespace-nowrap text-xl font-semibold text-gray-900">
-                AutoML
-              </span>
-              <p className="text-sm text-gray-500">
-                Simplifying AI, Amplifying Impact
-              </p>
-            </div>
           </NavbarBrand>
           <div className="mx-auto text-center md:mx-0">
             <NavbarToggle />
             <NavbarCollapse>
-              <Button color="success" href="#">
-                Login
-              </Button>
+              {hasToken ? (
+                <>
+                  <NavbarLink
+                    href="/app"
+                    className="my-auto mt-2 inline-block text-gray-700"
+                  >
+                    Go to App
+                  </NavbarLink>
+                  <NavbarLink
+                    href="#"
+                    onClick={handleLogout}
+                    className="ml-2 mt-2 text-gray-700"
+                  >
+                    Logout
+                  </NavbarLink>
+                  <Button color="blue" className="ml-2" href="/app/new">
+                    + Create New Model
+                  </Button>
+                </>
+              ) : (
+                <NavbarLink href="/login" className="text-gray-700">
+                  Login
+                </NavbarLink>
+              )}
             </NavbarCollapse>
           </div>
         </Navbar>
-        {children}
-        <Footer container={true}>
+
+        <TransitionWrapper>{children}</TransitionWrapper>
+
+        <Footer container>
           <div className="w-full py-12">
             <div className="grid w-full justify-between sm:flex sm:justify-between md:flex md:justify-between lg:flex lg:justify-between">
               <div>
                 <Footer.Brand
-                  href="#"
-                  src="https://placehold.co/50x50"
+                  href="/"
+                  src="/logo.svg"
+                  className="mr-3"
                   alt="AutoML Logo"
-                  width={50}
+                  width={200}
                   height={50}
-                  name="AutoML"
                 />
               </div>
               <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-6">
                 <div>
                   <Footer.Title title="Resources" />
-                  <Footer.LinkGroup col={true}>
+                  <Footer.LinkGroup col>
                     <Footer.Link href="#">Documentation</Footer.Link>
                     <Footer.Link href="#">Tutorials</Footer.Link>
                   </Footer.LinkGroup>
                 </div>
                 <div>
                   <Footer.Title title="Contact Us" />
-                  <Footer.LinkGroup col={true}>
+                  <Footer.LinkGroup col>
                     <Footer.Link href="#">LinkedIn</Footer.Link>
                     <Footer.Link href="#">Twitter</Footer.Link>
                     <Footer.Link href="#">Instagram</Footer.Link>
