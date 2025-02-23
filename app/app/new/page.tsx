@@ -12,6 +12,7 @@ import {
 } from "flowbite-react";
 import { AnimatePresence, motion } from "motion/react";
 import ProtectedPage from "@/app/components/ProtectedPage";
+import router from "next/router";
 
 export default function MultiStepWizard() {
   const [currentStep, setCurrentStep] = useState(1);
