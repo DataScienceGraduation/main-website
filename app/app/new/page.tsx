@@ -21,7 +21,6 @@ export default function MultiStepWizard() {
   const [file, setFile] = useState<File | null>(null);
   const [isLocked, setIsLocked] = useState(false);
 
-  // Model info fields for Step 1
   const [modelName, setModelName] = useState("");
   const [taskType, setTaskType] = useState("Regression");
   const [description, setDescription] = useState("");

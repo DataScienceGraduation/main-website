@@ -119,6 +119,13 @@ export default function ModelsSection() {
                   </Badge>
                 </div>
                 <p className="mt-2 text-gray-500">{model.description}</p>
+
+                <p className="text-gray-500">
+                  Evaluation Metric: {model.evaluation_metric}
+                </p>
+                <p className="text-gray-500">
+                  Metric Value: {model.evaluation_metric_value}
+                </p>
                 <div className="mt-4 w-40">
                   <Badge color="info">{model.task}</Badge>
                 </div>

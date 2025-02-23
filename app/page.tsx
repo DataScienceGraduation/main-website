@@ -356,7 +356,7 @@ export default function Home() {
               transition: { yoyo: Infinity, duration: 0.5 },
             }}
           >
-            <Button color="light" className="mx-auto" size="lg">
+            <Button href="/app" color="light" className="mx-auto" size="lg">
               Start Your AI Journey
             </Button>
           </motion.div>
