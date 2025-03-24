@@ -84,19 +84,27 @@ export default function RootLayout({
         <TransitionWrapper>{children}</TransitionWrapper>
 
         <Footer container>
-          <div className="w-full py-12">
-            <div className="grid w-full justify-between sm:flex sm:justify-between md:flex md:justify-between lg:flex lg:justify-between">
-              <div>
+          <div className="w-full py-12 px-20 flex items-center justify-between ">
+            <div className="grid grid-rows-1 gap-16">
+              <div className="m-auto">
                 <Footer.Brand
+
                   href="/"
-                  src="/logo.svg"
-                  className="mr-3"
+                  src="/logo.svg" className="ml-3"
                   alt="AutoML Logo"
                   width={200}
                   height={50}
                 />
               </div>
-              <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 sm:gap-6">
+              <div className="m-auto sm:flex sm:items-center sm:justify-between">
+              <Footer.Copyright
+                by="AutoML"
+                href="#"
+                year={new Date().getFullYear()}
+              />
+              </div>
+            </div>  
+              <div className="grid grid-cols-1 gap-16 sm:grid-cols-2 sm:gap-6">
                 <div>
                   <Footer.Title title="Resources" />
                   <Footer.LinkGroup col>
@@ -114,15 +122,7 @@ export default function RootLayout({
                   </Footer.LinkGroup>
                 </div>
               </div>
-            </div>
-            <Footer.Divider />
-            <div className="w-full sm:flex sm:items-center sm:justify-between">
-              <Footer.Copyright
-                by="AutoML"
-                href="#"
-                year={new Date().getFullYear()}
-              />
-            </div>
+                      
           </div>
         </Footer>
       </body>
