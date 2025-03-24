@@ -12,17 +12,18 @@ import {
 } from "flowbite-react";
 import { AnimatePresence, motion } from "motion/react";
 import ProtectedPage from "@/app/components/ProtectedPage";
-import router from "next/router";
+import {useRouter} from "next/navigation";
 
 export default function MultiStepWizard() {
   const [currentStep, setCurrentStep] = useState(1);
 
+  const router = useRouter();
   // File upload states
   const [file, setFile] = useState<File | null>(null);
   const [isLocked, setIsLocked] = useState(false);
 
   const [modelName, setModelName] = useState("");
-  const [taskType, setTaskType] = useState("Regression");
+  const [taskType, setTaskType] = useState("");
   const [description, setDescription] = useState("");
 
   // Success & error modals
@@ -106,7 +107,7 @@ export default function MultiStepWizard() {
       },
       body: formData,
     });
-
+    
     if (!response.ok) {
       setShowErrorModal(true);
     } else {
