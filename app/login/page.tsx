@@ -1,3 +1,4 @@
+// This is a Next.js page component for a login and registration form.
 "use client";
 
 import { useState, useEffect } from "react";
