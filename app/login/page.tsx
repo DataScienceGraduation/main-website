@@ -12,6 +12,7 @@ import {
 const LoginPage = () => {
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "register">("login");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -36,8 +37,8 @@ const LoginPage = () => {
         setError("Passwords do not match");
         return;
       }
-      if (!firstName || !lastName) {
-        setError("Please fill in all name fields");
+      if (!firstName || !lastName || !username) {
+        setError("Please fill in all required fields");
         return;
       }
     }
@@ -48,9 +49,13 @@ const LoginPage = () => {
       const apiUrl = mode === "login" ? "/login/" : "/register/";
       const getRequestBody = () => {
         if (mode === "login") {
-          return new URLSearchParams({ email, password });
+          return new URLSearchParams({ 
+            username,
+            password 
+          });
         }
         return new URLSearchParams({ 
+          username,
           first_name: firstName,
           last_name: lastName,
           email,
@@ -65,15 +70,24 @@ const LoginPage = () => {
       });
       const data = await res.json();
       
+      if (!res.ok) {
+        console.error('Server response:', data);
+        throw new Error(data.message || data.detail || 'Server error: ' + res.status);
+      }
+      
       if (!data.success) {
-        throw new Error(data.message || "Request failed");
+        console.error('API error:', data);
+        throw new Error(data.message || "Authentication failed");
       }
 
       if (mode === "register") {
         const loginRes = await fetch("http://localhost:8000/login/", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: new URLSearchParams({ email, password }),
+          body: new URLSearchParams({ 
+            username,
+            password 
+          }),
         });
         const loginData = await loginRes.json();
         if (!loginData.success) throw new Error("Auto-login failed after registration");
@@ -130,49 +144,81 @@ const LoginPage = () => {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {mode === "register" && (
-              <div className="flex gap-4">
-                <div className="relative flex-1">
+              <>
+                <div className="flex gap-4">
+                  <div className="relative flex-1">
+                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
+                      <HiOutlineUser className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="text"
+                      value={firstName}
+                      onChange={(e) => setFirstName(e.target.value)}
+                      placeholder="First Name"
+                      className="w-full p-3 border-b-2 border-gray-300 focus:outline-none focus:border-blue-600 pl-10"
+                      required
+                    />
+                  </div>
+                  <div className="relative flex-1">
+                    <div className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
+                      <HiOutlineUser className="h-5 w-5" />
+                    </div>
+                    <input
+                      type="text"
+                      value={lastName}
+                      onChange={(e) => setLastName(e.target.value)}
+                      placeholder="Last Name"
+                      className="w-full p-3 border-b-2 border-gray-300 focus:outline-none focus:border-blue-600 pl-10"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="relative">
                   <div className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
                     <HiOutlineUser className="h-5 w-5" />
                   </div>
                   <input
                     type="text"
-                    value={firstName}
-                    onChange={(e) => setFirstName(e.target.value)}
-                    placeholder="First Name"
+                    value={username}
+                    onChange={(e) => setUsername(e.target.value)}
+                    placeholder="Username"
                     className="w-full p-3 border-b-2 border-gray-300 focus:outline-none focus:border-blue-600 pl-10"
                     required
                   />
                 </div>
-                <div className="relative flex-1">
+
+                <div className="relative">
                   <div className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
-                    <HiOutlineUser className="h-5 w-5" />
+                    <HiOutlineMail className="h-5 w-5" />
                   </div>
                   <input
-                    type="text"
-                    value={lastName}
-                    onChange={(e) => setLastName(e.target.value)}
-                    placeholder="Last Name"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email"
                     className="w-full p-3 border-b-2 border-gray-300 focus:outline-none focus:border-blue-600 pl-10"
                     required
                   />
                 </div>
-              </div>
+              </>
             )}
 
-            <div className="relative">
-              <div className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
-                <HiOutlineMail className="h-5 w-5" />
+            {mode === "login" && (
+              <div className="relative">
+                <div className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
+                  <HiOutlineUser className="h-5 w-5" />
+                </div>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Username"
+                  className="w-full p-3 border-b-2 border-gray-300 focus:outline-none focus:border-blue-600 pl-10"
+                  required
+                />
               </div>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email"
-                className="w-full p-3 border-b-2 border-gray-300 focus:outline-none focus:border-blue-600 pl-10"
-                required
-              />
-            </div>
+            )}
 
             <div className="relative">
               <div className="absolute top-1/2 left-3 -translate-y-1/2 text-gray-400">
