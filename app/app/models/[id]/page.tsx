@@ -12,33 +12,81 @@ export default function ModelPage({ params }: { params: { id: string } }) {
   useEffect(() => {
     const fetchModel = async () => {
       try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          throw new Error(
+            "No authentication token found. Please log in again.",
+          );
+        }
+
         const res = await fetch(`http://localhost:8000/getModel?id=${id}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${localStorage.getItem("token")}`,
+            Authorization: `Bearer ${token}`,
           },
         });
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
         const result = await res.json();
 
         if (result.success) {
-          const parsedFeatures = JSON.parse(
-            result.data.list_of_features.replace(/'/g, '"'),
-          );
-          result.data.list_of_features = parsedFeatures;
-          setModelDetails(result.data);
+          try {
+            console.log("Raw features:", result.data.list_of_features);
 
-          const initialFormData: Record<string, any> = {};
-          Object.keys(parsedFeatures).forEach((key) => {
-            initialFormData[key] = "";
-          });
-          setFormData(initialFormData);
+            // Handle both string and object formats
+            let parsedFeatures;
+            if (typeof result.data.list_of_features === "string") {
+              // Clean the string from Python-specific syntax
+              const cleanedString = result.data.list_of_features
+                .replace(/'/g, '"') // Replace single quotes with double quotes
+                .replace(/None/g, "null") // Replace Python None with JSON null
+                .replace(/True/g, "true") // Replace Python True with JSON true
+                .replace(/False/g, "false") // Replace Python False with JSON false
+                .replace(/np\.True_/g, "true") // Replace NumPy True_ with JSON true
+                .replace(/np\.False_/g, "false") // Replace NumPy False_ with JSON false
+                .replace(/\[np\..*?\]/g, '["true","false"]'); // Replace NumPy boolean array with string array
+
+              console.log("Cleaned string:", cleanedString);
+              parsedFeatures = JSON.parse(cleanedString);
+            } else {
+              // If it's already an object, use it as is
+              parsedFeatures = result.data.list_of_features;
+            }
+
+            console.log("Parsed features:", parsedFeatures);
+
+            result.data.list_of_features = parsedFeatures;
+            setModelDetails(result.data);
+
+            const initialFormData: Record<string, any> = {};
+            Object.keys(parsedFeatures).forEach((key) => {
+              initialFormData[key] = "";
+            });
+            setFormData(initialFormData);
+          } catch (parseError) {
+            console.error("Error parsing features:", parseError);
+            console.error(
+              "Feature string that failed to parse:",
+              result.data.list_of_features,
+            );
+            throw new Error(
+              "Failed to parse model features - please check console for details",
+            );
+          }
         } else {
-          alert("Error fetching model details: " + result.message);
+          throw new Error(result.message || "Error retrieving model details");
         }
       } catch (error) {
         console.error("Fetch error:", error);
-        alert("Error fetching model details");
+        alert(
+          error instanceof Error
+            ? error.message
+            : "Error fetching model details",
+        );
       }
     };
 

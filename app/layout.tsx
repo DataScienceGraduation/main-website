@@ -31,7 +31,7 @@ export default function RootLayout({
   useEffect(() => {
     const token = localStorage.getItem("token");
     setHasToken(!!token);
-  }, []);
+  }, [pathname]);
 
   const handleLogout = () => {
     localStorage.removeItem("token");

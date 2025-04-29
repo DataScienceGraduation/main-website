@@ -12,7 +12,7 @@ import {
 } from "flowbite-react";
 import { AnimatePresence, motion } from "motion/react";
 import ProtectedPage from "@/app/components/ProtectedPage";
-import {useRouter} from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function MultiStepWizard() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -29,6 +29,7 @@ export default function MultiStepWizard() {
   // Success & error modals
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
   const [id, setId] = useState("");
 
   // Example data states for Steps 2 & 3
@@ -38,6 +39,20 @@ export default function MultiStepWizard() {
 
   // --- STEP NAVIGATION ---
   const nextStep = () => {
+    if (currentStep === 1) {
+      // Validate required fields before proceeding
+      if (!taskType) {
+        setErrorMessage("Please select a task type");
+        setShowErrorModal(true);
+        return;
+      }
+      if (!modelName) {
+        setErrorMessage("Please enter a model name");
+        setShowErrorModal(true);
+        return;
+      }
+    }
+
     if (currentStep < 3) setCurrentStep((prev) => prev + 1);
   };
   const prevStep = () => {
@@ -107,7 +122,7 @@ export default function MultiStepWizard() {
       },
       body: formData,
     });
-    
+
     if (!response.ok) {
       setShowErrorModal(true);
     } else {
@@ -151,33 +166,68 @@ export default function MultiStepWizard() {
                       <div className="flex w-full items-center justify-center">
                         <Label
                           htmlFor="dropzone-file"
-                          className="flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500 dark:hover:bg-gray-600"
+                          className={`flex h-64 w-full cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed ${
+                            file
+                              ? "border-green-300 bg-green-50"
+                              : "border-gray-300 bg-gray-50"
+                          } hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:hover:border-gray-500 dark:hover:bg-gray-600`}
                         >
                           <div className="flex flex-col items-center justify-center pb-6 pt-5">
-                            <svg
-                              className="mb-4 size-8 text-gray-500 dark:text-gray-400"
-                              aria-hidden="true"
-                              xmlns="http://www.w3.org/2000/svg"
-                              fill="none"
-                              viewBox="0 0 20 16"
-                            >
-                              <path
-                                stroke="currentColor"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
-                              />
-                            </svg>
-                            <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                              <span className="font-semibold">
-                                Click to upload
-                              </span>{" "}
-                              or drag and drop
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              CSV (max 50MB)
-                            </p>
+                            {file ? (
+                              <>
+                                <svg
+                                  className="mb-4 size-8 text-green-500"
+                                  aria-hidden="true"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 24 24"
+                                  stroke="currentColor"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M5 13l4 4L19 7"
+                                  />
+                                </svg>
+                                <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                  File uploaded:{" "}
+                                  <span className="font-semibold">
+                                    {file.name}
+                                  </span>
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  Click to change file
+                                </p>
+                              </>
+                            ) : (
+                              <>
+                                <svg
+                                  className="mb-4 size-8 text-gray-500 dark:text-gray-400"
+                                  aria-hidden="true"
+                                  xmlns="http://www.w3.org/2000/svg"
+                                  fill="none"
+                                  viewBox="0 0 20 16"
+                                >
+                                  <path
+                                    stroke="currentColor"
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M13 13h3a3 3 0 0 0 0-6h-.025A5.56 5.56 0 0 0 16 6.5 5.5 5.5 0 0 0 5.207 5.021C5.137 5.017 5.071 5 5 5a4 4 0 0 0 0 8h2.167M10 15V6m0 0L8 8m2-2 2 2"
+                                  />
+                                </svg>
+                                <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
+                                  <span className="font-semibold">
+                                    Click to upload
+                                  </span>{" "}
+                                  or drag and drop
+                                </p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  CSV (max 50MB)
+                                </p>
+                              </>
+                            )}
                           </div>
                           <FileInput
                             id="dropzone-file"
@@ -213,13 +263,14 @@ export default function MultiStepWizard() {
                         onChange={(e) => setTaskType(e.target.value)}
                         disabled={isLocked}
                       >
+                        <option value="">Choose ML Task</option>
                         <option value="Regression">Regression</option>
                         <option value="Classification">Classification</option>
                       </Select>
 
                       <Textarea
                         id="description"
-                        placeholder="Enter a brief description..."
+                        placeholder="Enter a brief description (optional)..."
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
                         className="col-span-2"
@@ -365,11 +416,11 @@ export default function MultiStepWizard() {
         </Modal>
 
         <Modal show={showErrorModal} onClose={() => setShowErrorModal(false)}>
-          <Modal.Header>Upload Failed</Modal.Header>
+          <Modal.Header>Error</Modal.Header>
           <Modal.Body>
             <p className="text-sm text-gray-500">
-              Something went wrong during the upload. Please try again or check
-              your file.
+              {errorMessage ||
+                "Something went wrong during the upload. Please try again or check your file."}
             </p>
           </Modal.Body>
           <Modal.Footer>
