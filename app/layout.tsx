@@ -14,8 +14,7 @@ import {
 } from "flowbite-react";
 import Image from "next/image";
 import TransitionWrapper from "./TransitionWrapper";
-import router from "next/router";
-import { usePathname } from "next/navigation"; // Add this import
+import { useRouter,usePathname } from "next/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -24,6 +23,7 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
+  const router = useRouter();
   const [hasToken, setHasToken] = useState(false);
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
@@ -36,7 +36,7 @@ export default function RootLayout({
   const handleLogout = () => {
     localStorage.removeItem("token");
     setHasToken(false);
-    router.push("/login");
+    router.push("/");
   };
 
   return (
