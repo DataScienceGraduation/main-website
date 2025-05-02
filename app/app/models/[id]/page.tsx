@@ -122,7 +122,13 @@ export default function ModelPage({ params }: { params: { id: string } }) {
 
       const result = await response.json();
       if (result.success) {
-        setModalMessage("Prediction Result: " + result.prediction);
+        if (modelDetails.task === "Clustering") {
+          setModalMessage(
+            `Data point assigned to Cluster ${result.prediction}`,
+          );
+        } else {
+          setModalMessage("Prediction Result: " + result.prediction);
+        }
       } else {
         setModalMessage("Prediction failed: " + result.message);
       }
@@ -144,6 +150,16 @@ export default function ModelPage({ params }: { params: { id: string } }) {
       <div className="bg-gray-50 p-8">
         <h1 className="mb-4 text-4xl font-bold">{modelDetails.name}</h1>
         <p className="text-gray-500">{modelDetails.description}</p>
+        {modelDetails.task === "Clustering" && (
+          <div className="mt-4 rounded bg-blue-50 p-4">
+            <p className="text-blue-700">
+              This is a clustering model. It will assign your input data to one
+              of the identified clusters. The model&apos;s performance is
+              measured using the silhouette score:{" "}
+              {modelDetails.evaluation_metric_value.toFixed(4)}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="container mx-auto flex-1 py-8">
@@ -152,7 +168,10 @@ export default function ModelPage({ params }: { params: { id: string } }) {
             {modelDetails.list_of_features &&
             Object.keys(modelDetails.list_of_features).length > 0 ? (
               Object.keys(modelDetails.list_of_features).map((key) => {
-                if (key === modelDetails.target_variable) {
+                if (
+                  key === modelDetails.target_variable &&
+                  modelDetails.task !== "Clustering"
+                ) {
                   return null;
                 }
 
@@ -234,14 +253,20 @@ export default function ModelPage({ params }: { params: { id: string } }) {
 
           <div className="mt-8 flex justify-end">
             <Button type="submit" className="px-6">
-              Predict
+              {modelDetails.task === "Clustering"
+                ? "Assign Cluster"
+                : "Predict"}
             </Button>
           </div>
         </form>
       </div>
 
       <Modal show={showModal} onClose={closeModal}>
-        <Modal.Header>Model Response</Modal.Header>
+        <Modal.Header>
+          {modelDetails.task === "Clustering"
+            ? "Cluster Assignment"
+            : "Model Response"}
+        </Modal.Header>
         <Modal.Body>
           <p>{modalMessage}</p>
         </Modal.Body>

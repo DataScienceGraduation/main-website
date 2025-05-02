@@ -111,7 +111,10 @@ export default function MultiStepWizard() {
     const formData = new FormData();
     formData.append("id", id);
     formData.append("name", modelName);
-    formData.append("target_variable", targetVariable);
+    // Only append target_variable if it's not a clustering task
+    if (taskType !== "Clustering") {
+      formData.append("target_variable", targetVariable);
+    }
     formData.append("description", description);
     formData.append("task", taskType);
 
@@ -249,33 +252,30 @@ export default function MultiStepWizard() {
                     <div className="grid gap-4 md:grid-cols-2">
                       <TextInput
                         id="modelName"
-                        type="text"
                         placeholder="Model Name"
+                        required
                         value={modelName}
                         onChange={(e) => setModelName(e.target.value)}
-                        disabled={isLocked}
-                        required
                       />
-
                       <Select
                         id="taskType"
+                        required
                         value={taskType}
                         onChange={(e) => setTaskType(e.target.value)}
-                        disabled={isLocked}
                       >
                         <option value="">Choose ML Task</option>
                         <option value="Regression">Regression</option>
                         <option value="Classification">Classification</option>
+                        <option value="Clustering">Clustering</option>
+                        <option value="TimeSeries">Time Series</option>
                       </Select>
 
                       <Textarea
                         id="description"
-                        placeholder="Enter a brief description (optional)..."
+                        placeholder="Model Description"
                         value={description}
                         onChange={(e) => setDescription(e.target.value)}
-                        className="col-span-2"
-                        disabled={isLocked}
-                        rows={5}
+                        className="md:col-span-2"
                       />
                     </div>
                   </div>
@@ -291,46 +291,47 @@ export default function MultiStepWizard() {
                 animate="animate"
                 exit="exit"
                 transition={{ duration: 0.4 }}
-                className="w-full"
+                className="w-full rounded-md"
               >
-                <h1 className="p-4 text-2xl font-bold">
-                  Step 2: Column Selection
-                </h1>
                 <div className="mb-8 p-4">
-                  <h2 className="mb-4 text-xl font-semibold">Choose Columns</h2>
-                  <p className="mb-2">
-                    For example, select your target variable and analysis
-                    columns.
-                  </p>
-                  <label className="mb-2 block text-sm font-medium text-gray-700">
-                    Target Variable
-                  </label>
-                  <Select
-                    id="targetVariable"
-                    value={targetVariable}
-                    onChange={(e) => setTargetVariable(e.target.value)}
-                    disabled={isLocked}
-                  >
-                    {targetVariables.map((variable) => (
-                      <option key={variable} value={variable}>
-                        {variable}
-                      </option>
-                    ))}
-                  </Select>
-
-                  <label className="mb-2 mt-4 block text-sm font-medium text-gray-700">
-                    Analysis Columns
-                  </label>
-                  <TextInput
-                    id="analysisColumns"
-                    type="text"
-                    placeholder="e.g. Region, Product, Month"
-                    value={analysisColumns.join(",")}
-                    onChange={(e) =>
-                      setAnalysisColumns(e.target.value.split(","))
-                    }
-                    disabled={isLocked}
-                  />
+                  <h1 className="p-4 text-2xl font-bold">
+                    Step 2: Target Variable Selection
+                  </h1>
+                  <h2 className="mb-4 text-xl font-semibold">
+                    {taskType === "Clustering"
+                      ? "Select Features for Clustering"
+                      : "Select Target Variable"}
+                  </h2>
+                  <div className="grid gap-4">
+                    {taskType === "Clustering" ? (
+                      <div className="space-y-4">
+                        <p className="text-gray-600">
+                          For clustering tasks, you do not need to select a
+                          target variable. The model will automatically identify
+                          patterns and group similar data points together.
+                        </p>
+                        <p className="text-gray-600">
+                          All available features will be used for clustering.
+                          The model will use the silhouette score to evaluate
+                          the clustering performance.
+                        </p>
+                      </div>
+                    ) : (
+                      <Select
+                        id="targetVariable"
+                        required
+                        value={targetVariable}
+                        onChange={(e) => setTargetVariable(e.target.value)}
+                      >
+                        <option value="">Select Target Variable</option>
+                        {targetVariables.map((variable) => (
+                          <option key={variable} value={variable}>
+                            {variable}
+                          </option>
+                        ))}
+                      </Select>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             )}
