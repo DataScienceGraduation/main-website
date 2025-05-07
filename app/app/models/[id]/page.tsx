@@ -230,6 +230,25 @@ export default function ModelPage({ params }: { params: { id: string } }) {
                       </select>
                     </div>
                   );
+                } else if (type === "datetime") {
+                  return (
+                    <div key={key}>
+                      <Label htmlFor={key} value={`Enter a value for ${key}`} />
+                      <TextInput
+                        id={key}
+                        name={key}
+                        type="text"
+                        placeholder={placeholder}
+                        value={formData[key] || ""}
+                        onChange={handleInputChange}
+                      />
+                      {modelDetails.date_format && (
+                        <p className="text-xs text-gray-500 mt-1">
+                          Please enter the date in the format: <b>{modelDetails.date_format}</b>
+                        </p>
+                      )}
+                    </div>
+                  );
                 } else {
                   return (
                     <div key={key}>

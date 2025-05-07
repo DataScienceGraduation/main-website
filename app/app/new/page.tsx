@@ -36,6 +36,23 @@ export default function MultiStepWizard() {
   const [targetVariable, setTargetVariable] = useState("");
   const [targetVariables, setTargetVariables] = useState<string[]>([]);
   const [analysisColumns, setAnalysisColumns] = useState<string[]>([]);
+  const [datetimeColumn, setDatetimeColumn] = useState("");
+  const [dateFormat, setDateFormat] = useState("");
+  const [datetimeColumns, setDatetimeColumns] = useState<string[]>([]);
+
+  // Common date formats that match pandas datetime parsing
+  const dateFormats = [
+    { value: "%d/%m/%y", label: "DD/MM/YY" },
+    { value: "%d/%m/%Y", label: "DD/MM/YYYY" },
+    { value: "%m/%d/%y", label: "MM/DD/YY" },
+    { value: "%m/%d/%Y", label: "MM/DD/YYYY" },
+    { value: "%Y-%m-%d", label: "YYYY-MM-DD" },
+    { value: "%d-%m-%Y", label: "DD-MM-YYYY" },
+    { value: "%m-%d-%Y", label: "MM-DD-YYYY" },
+    { value: "%Y/%m/%d", label: "YYYY/MM/DD" },
+    { value: "%d/%m/%y %H:%M", label: "DD/MM/YY HH:MM" },
+    { value: "%Y-%m-%d %H:%M:%S", label: "YYYY-MM-DD HH:MM:SS" }
+  ];
 
   // --- STEP NAVIGATION ---
   const nextStep = () => {
@@ -92,8 +109,10 @@ export default function MultiStepWizard() {
       } else {
         let res = await response.json();
         setTargetVariables(res.data);
+        if (res.datetime_columns) {
+          setDatetimeColumns(res.datetime_columns);
+        }
         setId(res.id);
-
         setShowSuccessModal(true);
       }
     } catch (error) {
@@ -111,12 +130,17 @@ export default function MultiStepWizard() {
     const formData = new FormData();
     formData.append("id", id);
     formData.append("name", modelName);
-    // Only append target_variable if it's not a clustering task
+    formData.append("description", description);
+    formData.append("task", taskType);
+    
+    if (taskType === "TimeSeries") {
+      formData.append("datetime_column", datetimeColumn);
+      formData.append("date_format", dateFormat);
+    }
+    
     if (taskType !== "Clustering") {
       formData.append("target_variable", targetVariable);
     }
-    formData.append("description", description);
-    formData.append("task", taskType);
 
     const response = await fetch(trainUrl, {
       method: "POST",
@@ -295,15 +319,71 @@ export default function MultiStepWizard() {
               >
                 <div className="mb-8 p-4">
                   <h1 className="p-4 text-2xl font-bold">
-                    Step 2: Target Variable Selection
+                  {taskType === "TimeSeries"
+                      ? "Step 2: Target Variable Selection and Datetime Column"
+                      : "Step 2: Target Variable Selection"}
+
                   </h1>
                   <h2 className="mb-4 text-xl font-semibold">
                     {taskType === "Clustering"
                       ? "Select Features for Clustering"
+                      : taskType==="TimeSeries"
+                      ? ""
                       : "Select Target Variable"}
                   </h2>
                   <div className="grid gap-4">
-                    {taskType === "Clustering" ? (
+                    {taskType === "TimeSeries" ? (
+                      <>
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold">Select Target Variable</h3>
+                          <Select
+                            id="targetVariable"
+                            required
+                            value={targetVariable}
+                            onChange={(e) => setTargetVariable(e.target.value)}
+                          >
+                            <option value="">Select Target Variable</option>
+                            {targetVariables.map((variable) => (
+                              <option key={variable} value={variable}>
+                                {variable}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold">Select Datetime Column</h3>
+                          <Select
+                            id="datetimeColumn"
+                            required
+                            value={datetimeColumn}
+                            onChange={(e) => setDatetimeColumn(e.target.value)}
+                          >
+                            <option value="">Choose a datetime column</option>
+                            {datetimeColumns.map((column) => (
+                              <option key={column} value={column}>
+                                {column}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-semibold">Select Date Format</h3>
+                          <Select
+                            id="dateFormat"
+                            required
+                            value={dateFormat}
+                            onChange={(e) => setDateFormat(e.target.value)}
+                          >
+                            <option value="">Choose a date format</option>
+                            {dateFormats.map((format) => (
+                              <option key={format.value} value={format.value}>
+                                {format.label}
+                              </option>
+                            ))}
+                          </Select>
+                        </div>
+                      </>
+                    ) : taskType === "Clustering" ? (
                       <div className="space-y-4">
                         <p className="text-gray-600">
                           For clustering tasks, you do not need to select a
@@ -360,6 +440,16 @@ export default function MultiStepWizard() {
                   <p className="mb-2">
                     <strong>Description:</strong> {description || "N/A"}
                   </p>
+                  {taskType === "TimeSeries" && (
+                    <>
+                      <p className="mb-2">
+                        <strong>Datetime Column:</strong> {datetimeColumn}
+                      </p>
+                      <p className="mb-2">
+                        <strong>Date Format:</strong> {dateFormat}
+                      </p>
+                    </>
+                  )}
                   <p className="mb-2">
                     <strong>Target Variable:</strong> {targetVariable || "N/A"}
                   </p>
