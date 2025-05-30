@@ -289,12 +289,11 @@ export default function Home() {
                   width={600}
                   height={600}
                 />
-                <h3 className="mb-2 text-2xl font-bold text-gray-800">
+                <h3 className="mb-2 text-xl font-bold text-gray-800">
                   Performance Dashboard
                 </h3>
                 <p className="text-gray-600">
-                  Monitor real-time metrics and analyze model performance with
-                  ease.
+                  Monitor real-time metrics and analyze model performance.
                 </p>
               </Card>
             </motion.div>

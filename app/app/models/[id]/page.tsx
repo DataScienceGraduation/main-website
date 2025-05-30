@@ -155,14 +155,14 @@ export default function ModelPage({ params }: { params: { id: string } }) {
             <p className="text-blue-700">
               This is a clustering model. It will assign your input data to one
               of the identified clusters. The model&apos;s performance is
-              measured using the silhouette score:{" "}
+              measured using a custom score of Silhouette and Davies-Bouldin :{" "}
               {modelDetails.evaluation_metric_value.toFixed(4)}
             </p>
           </div>
         )}
       </div>
 
-      <div className="container mx-auto flex-1 py-8">
+      <div className="container px-4 flex-1 py-8">
         <form onSubmit={handleSubmit}>
           <div className="grid gap-6 sm:grid-cols-3">
             {modelDetails.list_of_features &&
@@ -177,7 +177,6 @@ export default function ModelPage({ params }: { params: { id: string } }) {
 
                 const type = modelDetails.list_of_features[key];
                 const placeholder = `Enter ${type} value`;
-
                 if (type === "int64") {
                   return (
                     <div key={key}>
