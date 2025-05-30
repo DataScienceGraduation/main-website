@@ -6,8 +6,11 @@ export default function ModelPage({ params }: { params: { id: string } }) {
   const id = params.id;
   const [modelDetails, setModelDetails] = useState<any>(null);
   const [formData, setFormData] = useState<Record<string, any>>({});
+  const [forecastHorizon, setForecastHorizon] = useState<number>(1);
   const [showModal, setShowModal] = useState(false);
   const [modalMessage, setModalMessage] = useState("");
+  const [plotImage, setPlotImage] = useState<string | null>(null);
+  const [predictionData, setPredictionData] = useState<any>(null);
 
   useEffect(() => {
     const fetchModel = async () => {
@@ -109,7 +112,16 @@ export default function ModelPage({ params }: { params: { id: string } }) {
     e.preventDefault();
     try {
       const data = new FormData();
-      data.append("data", JSON.stringify(formData));
+
+      if (modelDetails.task === "TimeSeries") {
+        // For time series, only send forecast horizon
+        data.append("data", JSON.stringify({}));
+        data.append("forecast_horizon", forecastHorizon.toString());
+      } else {
+        // For other tasks, send the form data as before
+        data.append("data", JSON.stringify(formData));
+      }
+
       data.append("id", id);
 
       const response = await fetch("http://localhost:8000/infer/", {
@@ -122,15 +134,35 @@ export default function ModelPage({ params }: { params: { id: string } }) {
 
       const result = await response.json();
       if (result.success) {
+        // Handle plot data for time series models (only for multiple timesteps)
+        if (modelDetails.task === "TimeSeries" && result.plot) {
+          setPlotImage(result.plot);
+          setPredictionData(result); // Store prediction data for CSV download
+        } else {
+          setPlotImage(null);
+          setPredictionData(null);
+        }
+
         if (modelDetails.task === "Clustering") {
           setModalMessage(
             `Data point assigned to Cluster ${result.prediction}`,
           );
+        } else if (modelDetails.task === "TimeSeries") {
+          if (Array.isArray(result.prediction)) {
+            // For multiple timesteps, don't show the values in text
+            setModalMessage(
+              `Forecast generated for next ${forecastHorizon} timesteps`
+            );
+          } else {
+            setModalMessage(`Forecast for next timestep: ${result.prediction}`);
+          }
         } else {
           setModalMessage("Prediction Result: " + result.prediction);
         }
       } else {
         setModalMessage("Prediction failed: " + result.message);
+        setPlotImage(null);
+        setPredictionData(null);
       }
     } catch (error) {
       console.error("Error during prediction:", error);
@@ -141,6 +173,37 @@ export default function ModelPage({ params }: { params: { id: string } }) {
 
   const closeModal = () => {
     setShowModal(false);
+    setPlotImage(null); // Clear the plot when modal is closed
+    setPredictionData(null); // Clear prediction data when modal is closed
+  };
+
+  const downloadCSV = () => {
+    if (!predictionData || !Array.isArray(predictionData.prediction)) return;
+
+    // Create CSV content
+    const csvContent = [
+      ['Timestep', 'Predicted Value'],
+      ...predictionData.prediction.map((value: number, index: number) => [
+        index + 1,
+        value
+      ])
+    ];
+
+    // Convert to CSV string
+    const csvString = csvContent
+      .map(row => row.join(','))
+      .join('\n');
+
+    // Create and download file
+    const blob = new Blob([csvString], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `forecast_${modelDetails.name}_${forecastHorizon}_timesteps.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
   };
 
   if (!modelDetails) return <p>Loading...</p>;
@@ -160,20 +223,56 @@ export default function ModelPage({ params }: { params: { id: string } }) {
             </p>
           </div>
         )}
+        {modelDetails.task === "TimeSeries" && (
+          <div className="mt-4 rounded bg-green-50 p-4">
+            <p className="text-green-700">
+              This is a time series forecasting model. It uses historical data
+              to predict future values. The model&apos;s performance is
+              measured using RMSE:{" "}
+              {modelDetails.evaluation_metric_value.toFixed(4)}
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="container px-4 flex-1 py-8">
         <form onSubmit={handleSubmit}>
-          <div className="grid gap-6 sm:grid-cols-3">
-            {modelDetails.list_of_features &&
-            Object.keys(modelDetails.list_of_features).length > 0 ? (
-              Object.keys(modelDetails.list_of_features).map((key) => {
-                if (
-                  key === modelDetails.target_variable &&
-                  modelDetails.task !== "Clustering"
-                ) {
-                  return null;
-                }
+          {modelDetails.task === "TimeSeries" ? (
+            // Time Series specific form
+            <div className="max-w-md mx-auto">
+              <div className="mb-6">
+                <Label
+                  htmlFor="forecastHorizon"
+                  value="Number of timesteps to forecast"
+                />
+                <TextInput
+                  id="forecastHorizon"
+                  name="forecastHorizon"
+                  type="number"
+                  min="1"
+                  max="100"
+                  placeholder="Enter number of timesteps (e.g., 1, 5, 10)"
+                  value={forecastHorizon}
+                  onChange={(e) => setForecastHorizon(parseInt(e.target.value) || 1)}
+                  required
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Enter how many future timesteps you want to predict (minimum: 1, maximum: 100)
+                </p>
+              </div>
+            </div>
+          ) : (
+            // Regular form for other tasks
+            <div className="grid gap-6 sm:grid-cols-3">
+              {modelDetails.list_of_features &&
+              Object.keys(modelDetails.list_of_features).length > 0 ? (
+                Object.keys(modelDetails.list_of_features).map((key) => {
+                  if (
+                    key === modelDetails.target_variable &&
+                    modelDetails.task !== "Clustering"
+                  ) {
+                    return null;
+                  }
 
                 const type = modelDetails.list_of_features[key];
                 const placeholder = `Enter ${type} value`;
@@ -268,11 +367,108 @@ export default function ModelPage({ params }: { params: { id: string } }) {
               <p>No features available.</p>
             )}
           </div>
+                  const type = modelDetails.list_of_features[key];
+                  const placeholder = `Enter ${type} value`;
+
+                  if (type === "int64") {
+                    return (
+                      <div key={key}>
+                        <Label htmlFor={key} value={`Enter a value for ${key}`} />
+                        <TextInput
+                          id={key}
+                          name={key}
+                          type="number"
+                          placeholder={placeholder}
+                          value={formData[key] || ""}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    );
+                  } else if (type === "float") {
+                    return (
+                      <div key={key}>
+                        <Label htmlFor={key} value={`Enter a value for ${key}`} />
+                        <TextInput
+                          id={key}
+                          name={key}
+                          type="number"
+                          step="any"
+                          placeholder={placeholder}
+                          value={formData[key] || ""}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    );
+                  } else if (Array.isArray(type)) {
+                    return (
+                      <div key={key}>
+                        <Label
+                          htmlFor={key}
+                          value={`Select a value for ${key}`}
+                        />
+                        <select
+                          id={key}
+                          name={key}
+                          value={formData[key] || ""}
+                          onChange={handleInputChange}
+                          className="mt-1 block w-full rounded border border-gray-300 p-2"
+                        >
+                          <option value="">Select an option</option>
+                          {type.map((option: string, index: number) => (
+                            <option key={index} value={option}>
+                              {option}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    );
+                  } else if (type === "datetime") {
+                    return (
+                      <div key={key}>
+                        <Label htmlFor={key} value={`Enter a value for ${key}`} />
+                        <TextInput
+                          id={key}
+                          name={key}
+                          type="text"
+                          placeholder={placeholder}
+                          value={formData[key] || ""}
+                          onChange={handleInputChange}
+                        />
+                        {modelDetails.date_format && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Please enter the date in the format: <b>{modelDetails.date_format}</b>
+                          </p>
+                        )}
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <div key={key}>
+                        <Label htmlFor={key} value={`Enter a value for ${key}`} />
+                        <TextInput
+                          id={key}
+                          name={key}
+                          type="text"
+                          placeholder={placeholder}
+                          value={formData[key] || ""}
+                          onChange={handleInputChange}
+                        />
+                      </div>
+                    );
+                  }
+                })
+              ) : (
+                <p>No features available.</p>
+              )}
+            </div>
+          )}
 
           <div className="mt-8 flex justify-end">
             <Button type="submit" className="px-6">
               {modelDetails.task === "Clustering"
                 ? "Assign Cluster"
+                : modelDetails.task === "TimeSeries"
+                ? "Generate Forecast"
                 : "Predict"}
             </Button>
           </div>
@@ -283,10 +479,35 @@ export default function ModelPage({ params }: { params: { id: string } }) {
         <Modal.Header>
           {modelDetails.task === "Clustering"
             ? "Cluster Assignment"
+            : modelDetails.task === "TimeSeries"
+            ? "Forecast Results"
             : "Model Response"}
         </Modal.Header>
         <Modal.Body>
-          <p>{modalMessage}</p>
+          <div className="space-y-4">
+            <p className="text-lg font-medium">{modalMessage}</p>
+            {modelDetails.task === "TimeSeries" && plotImage && (
+              <div className="space-y-4">
+                <div className="flex justify-center">
+                  <img
+                    src={`data:image/png;base64,${plotImage}`}
+                    alt="Time Series Forecast Plot"
+                    className="max-w-full h-auto rounded-lg shadow-lg border"
+                  />
+                </div>
+                {predictionData && Array.isArray(predictionData.prediction) && (
+                  <div className="flex justify-center">
+                    <Button
+                      onClick={downloadCSV}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      Download Forecast Data (CSV)
+                    </Button>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </Modal.Body>
       </Modal>
     </div>
