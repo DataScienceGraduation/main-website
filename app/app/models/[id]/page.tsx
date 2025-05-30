@@ -145,7 +145,7 @@ export default function ModelPage({ params }: { params: { id: string } }) {
 
         if (modelDetails.task === "Clustering") {
           setModalMessage(
-            `Data point assigned to Cluster ${result.prediction}`,
+            `Data point assigned to Cluster ${result.prediction}`
           );
         } else if (modelDetails.task === "TimeSeries") {
           if (Array.isArray(result.prediction)) {
@@ -218,7 +218,7 @@ export default function ModelPage({ params }: { params: { id: string } }) {
             <p className="text-blue-700">
               This is a clustering model. It will assign your input data to one
               of the identified clusters. The model&apos;s performance is
-              measured using a custom score of Silhouette and Davies-Bouldin :{" "}
+              measured using a custom score of Silhouette score and Davies-Bouldin Index:{" "}
               {modelDetails.evaluation_metric_value.toFixed(4)}
             </p>
           </div>
@@ -235,7 +235,7 @@ export default function ModelPage({ params }: { params: { id: string } }) {
         )}
       </div>
 
-      <div className="container px-4 flex-1 py-8">
+      <div className="container mx-auto px-4 flex-1 py-8">
         <form onSubmit={handleSubmit}>
           {modelDetails.task === "TimeSeries" ? (
             // Time Series specific form
@@ -274,99 +274,6 @@ export default function ModelPage({ params }: { params: { id: string } }) {
                     return null;
                   }
 
-                const type = modelDetails.list_of_features[key];
-                const placeholder = `Enter ${type} value`;
-                if (type === "int64") {
-                  return (
-                    <div key={key}>
-                      <Label htmlFor={key} value={`Enter a value for ${key}`} />
-                      <TextInput
-                        id={key}
-                        name={key}
-                        type="number"
-                        placeholder={placeholder}
-                        value={formData[key] || ""}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  );
-                } else if (type === "float") {
-                  return (
-                    <div key={key}>
-                      <Label htmlFor={key} value={`Enter a value for ${key}`} />
-                      <TextInput
-                        id={key}
-                        name={key}
-                        type="number"
-                        step="any"
-                        placeholder={placeholder}
-                        value={formData[key] || ""}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  );
-                } else if (Array.isArray(type)) {
-                  return (
-                    <div key={key}>
-                      <Label
-                        htmlFor={key}
-                        value={`Select a value for ${key}`}
-                      />
-                      <select
-                        id={key}
-                        name={key}
-                        value={formData[key] || ""}
-                        onChange={handleInputChange}
-                        className="mt-1 block w-full rounded border border-gray-300 p-2"
-                      >
-                        <option value="">Select an option</option>
-                        {type.map((option: string, index: number) => (
-                          <option key={index} value={option}>
-                            {option}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  );
-                } else if (type === "datetime") {
-                  return (
-                    <div key={key}>
-                      <Label htmlFor={key} value={`Enter a value for ${key}`} />
-                      <TextInput
-                        id={key}
-                        name={key}
-                        type="text"
-                        placeholder={placeholder}
-                        value={formData[key] || ""}
-                        onChange={handleInputChange}
-                      />
-                      {modelDetails.date_format && (
-                        <p className="text-xs text-gray-500 mt-1">
-                          Please enter the date in the format: <b>{modelDetails.date_format}</b>
-                        </p>
-                      )}
-                    </div>
-                  );
-                } else {
-                  return (
-                    <div key={key}>
-                      <Label htmlFor={key} value={`Enter a value for ${key}`} />
-                      <TextInput
-                        id={key}
-                        name={key}
-                        type="text"
-                        placeholder={placeholder}
-                        value={formData[key] || ""}
-                        onChange={handleInputChange}
-                      />
-                    </div>
-                  );
-                }
-              })
-            ) : (
-              <p>No features available.</p>
-            )}
-          </div>
                   const type = modelDetails.list_of_features[key];
                   const placeholder = `Enter ${type} value`;
 
