@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {};
+nextConfig.output = 'export';
 
 nextConfig.images = {
   dangerouslyAllowSVG: true,
