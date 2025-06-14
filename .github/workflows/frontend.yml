@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          npm ci
+          npm install
 
       - name: Lint & typecheck
         run: |
@@ -39,7 +39,7 @@ jobs:
 
       - name: Sync to S3
         run: |
-          aws s3 sync main-website/out/ s3://${{ secrets.S3_BUCKET_NAME }} --delete --acl public-read
+          aws s3 sync out/ s3://${{ secrets.S3_BUCKET_NAME }} --delete --acl public-read
 
       - name: Create CloudFront cache invalidation
         run: |
