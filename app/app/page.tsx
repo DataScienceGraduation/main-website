@@ -178,7 +178,7 @@ export default function ModelsSection() {
                   >
                     <div className="flex items-end gap-2">
                       {getTaskIcon(model.task)}
-                      <span className="h-5 w-5 whitespace-nowrap">
+                      <span className="size-5 whitespace-nowrap">
                         {model.task}
                       </span>
                     </div>
@@ -219,13 +219,16 @@ export default function ModelsSection() {
                   >
                     <div className="flex items-end gap-2">
                       {getTaskIcon(model.task)}
-                      <span className="h-5 w-5 whitespace-nowrap">
+                      <span className="size-5 whitespace-nowrap">
                         {model.task}
                       </span>
                     </div>
                   </Badge>
                 </div>
-                <Button color="blue" href={`/app/models/${model.id}`}>
+                <Button
+                  color="blue"
+                  href={`/app/models/viewModel?id=${model.id}`}
+                >
                   View Model
                 </Button>
               </Card>
