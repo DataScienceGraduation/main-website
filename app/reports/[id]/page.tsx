@@ -7,6 +7,7 @@ import { HiInformationCircle, HiDownload } from "react-icons/hi";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
+import ReactMarkdown from 'react-markdown';
 
 // Define TypeScript interfaces for the report data
 interface ModelEntry {
@@ -210,8 +211,8 @@ function ReportComponent() {
                     </div>
                     <div className="flex flex-col h-full">
                       <h4 className="font-semibold text-gray-700 text-xl mb-2">Chart Explanation</h4>
-                      <div className="flex-grow p-4 bg-gray-50 rounded-lg">
-                        <p className="text-gray-600">{chart.description}</p>
+                      <div className="flex-grow p-4 bg-gray-50 rounded-lg text-gray-600">
+                        <ReactMarkdown>{chart.description}</ReactMarkdown>
                       </div>
                     </div>
                   </div>
@@ -224,7 +225,13 @@ function ReportComponent() {
               <h2 className="text-2xl font-semibold text-gray-700 mb-4">AI Business Summary</h2>
               <div className="prose prose-lg max-w-none">
                   <h3 className="font-semibold text-xl text-gray-800">Business Impact Analysis</h3>
-                  {businessImpact ? <div dangerouslySetInnerHTML={{ __html: formatInsightSection(businessImpact) }} /> : <p>No business impact analysis available.</p>}
+                  {businessImpact ? (
+                    <div className="prose prose-lg max-w-none">
+                      <ReactMarkdown>{businessImpact}</ReactMarkdown>
+                    </div>
+                  ) : (
+                    <p>No business impact analysis available.</p>
+                  )}
               </div>
           </Card>
         </div>
@@ -240,4 +247,4 @@ export default function ReportPage() {
             <ReportComponent />
         </ProtectedPage>
     );
-} 
+}
