@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, Badge, Spinner, Alert, Button } from "flowbite-react";
 import { Shapes } from "flowbite-react-icons/solid";
-import { ChartMixed } from "flowbite-react-icons/outline";
+import { ChartMixed } from "flowbite-react-icons/outline"; 
 
 export default function ModelsSection() {
   const [models, setModels] = useState<any[]>([]);
@@ -80,8 +80,8 @@ export default function ModelsSection() {
               fill="#145E75"
             />
             <path
-              fill-rule="evenodd"
-              clip-rule="evenodd"
+              fillRule="evenodd"
+              clipRule="evenodd"
               d="M4 3C4.55228 3 5 3.44772 5 4V19H20C20.5523 19 21 19.4477 21 20C21 20.5523 20.5523 21 20 21H5C4.46946 21 3.96083 20.7892 3.58586 20.4143C3.2107 20.0392 3 19.5304 3 19V4C3 3.44772 3.44772 3 4 3ZM20.244 4.33183C20.613 4.74273 20.5791 5.37499 20.1682 5.74401L17.9502 7.73592L13.1967 12.2175L8.70711 16.7071C8.31658 17.0976 7.68342 17.0976 7.29289 16.7071C6.90237 16.3166 6.90237 15.6834 7.29289 15.2929L11.7929 10.7929C11.7998 10.786 11.8069 10.7791 11.814 10.7724L16.587 6.27239L16.6048 6.25599L18.8318 4.25599C19.2427 3.88697 19.875 3.92092 20.244 4.33183Z"
               fill="#145E75"
             />
@@ -130,8 +130,10 @@ export default function ModelsSection() {
             />
           </svg>
         );
-      case "Forecasting":
+      case "TimeSeries": 
         return <ChartMixed width="24" height="24" viewBox="0 0 24 24" />;
+      default:
+        return null;
     }
   };
 
@@ -210,7 +212,7 @@ export default function ModelsSection() {
                   Evaluation Metric: {model.evaluation_metric}
                 </p>
                 <p className="text-gray-500">
-                  Metric Value: {model.evaluation_metric_value}
+                  Metric Value: {Math.abs(model.evaluation_metric_value).toFixed(2)}
                 </p>
                 <div className="mt-4 w-40">
                   <Badge

@@ -307,17 +307,17 @@ export default function ClientModelPage() {
           <div className="flex items-center justify-between">
             <div>
               <h3 className="mb-2 text-lg font-semibold text-gray-800">
-                Generate AI Report
+                Generate AI Report & Dashboard
               </h3>
               <p className="text-sm text-gray-600">
-                Create a comprehensive AI-powered analysis report with insights,
+                Create a comprehensive AI-powered analysis with insights,
                 charts, and business recommendations for this model.
               </p>
             </div>
             <Button
               onClick={handleGenerateReport}
               disabled={isGeneratingReport}
-              className="bg-green-600 px-6 hover:bg-green-700"
+              className="bg-blue-600 px-6 hover:bg-blue-700"
             >
               {isGeneratingReport ? "Generating Report..." : "Generate Report"}
             </Button>
@@ -325,7 +325,7 @@ export default function ClientModelPage() {
               onClick={() => router.push(`/dashboards/${id}`)}
               className="ml-4 bg-blue-600 px-6 hover:bg-blue-700"
             >
-              Dashboards
+              Generate Dashboard
             </Button>
           </div>
         </div>
@@ -342,8 +342,8 @@ export default function ClientModelPage() {
           </div>
         )}
         {modelDetails.task === "TimeSeries" && (
-          <div className="mt-4 rounded bg-green-50 p-4">
-            <p className="text-green-700">
+          <div className="mt-4 rounded bg-blue-50 p-4">
+            <p className="text-blue-700">
               This is a time series forecasting model. It uses historical data
               to predict future values. The model&apos;s performance is measured
               using RMSE: {modelDetails.evaluation_metric_value.toFixed(4)}
@@ -501,8 +501,8 @@ export default function ClientModelPage() {
             </div>
           )}
 
-          <div className="mt-8 flex justify-end">
-            <Button type="submit" className="px-6">
+          <div className="mt-8 flex justify-end ">
+            <Button type="submit" className="px-6 ">
               {modelDetails.task === "Clustering"
                 ? "Assign Cluster"
                 : modelDetails.task === "TimeSeries"
@@ -539,7 +539,7 @@ export default function ClientModelPage() {
                   <div className="flex justify-center">
                     <Button
                       onClick={downloadCSV}
-                      className="bg-green-600 hover:bg-green-700"
+                      className=" px-6"
                     >
                       Download Forecast Data (CSV)
                     </Button>
