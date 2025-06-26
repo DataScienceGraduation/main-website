@@ -1,225 +1,363 @@
 "use client";
-
 import React, { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import dynamic from "next/dynamic";
+const Plot = dynamic(() => import("react-plotly.js"), { ssr: false });
 
 export default function DashboardPage() {
   const params = useParams();
   const id = params?.id;
-  const [modelDetails, setModelDetails] = useState<any>(null);
+  const [dataset, setDataset] = useState<any[]>([]);
+  const [charts, setCharts] = useState<any[]>([]);
+  const [status, setStatus] = useState<string>("pending");
+  const [dashboardTitle, setDashboardTitle] = useState<string>("");
+  const [dashboardDescription, setDashboardDescription] = useState<string>("");
+  const [authError, setAuthError] = useState<boolean>(false);
+  const [notFound, setNotFound] = useState<string>("");
+
+  const plotlyChartTypes = [
+    "histogram",
+    "scatter",
+    "bar",
+    "line",
+    "box",
+    "pie",
+    "violin",
+    "heatmap"
+  ];
 
   useEffect(() => {
-    const fetchModel = async () => {
-      if (!id) return;
+    if (!id) return;
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+    if (!token) {
+      setAuthError(true);
+      setStatus("error");
+      return;
+    }
+    fetch(`http://localhost:8000/aiapp/get-dashboard-by-model?model_id=${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    })
+      .then(res => {
+        if (res.status === 401) {
+          setAuthError(true);
+          setStatus("error");
+          return { success: false };
+        }
+        if (res.status === 404) {
+          setNotFound("Dashboard or model not found.");
+          setStatus("error");
+          return { success: false };
+        }
+        return res.json();
+      })
+      .then(data => {
+        if (data.success) {
+          setCharts(data.charts);
+          setDashboardTitle(data.title || "Dashboard");
+          setDashboardDescription(data.description || "");
+          setStatus("done");
+        } else if (data.message && (data.message.includes("Dashboard not found") || data.message.includes("Model not found"))) {
+          setNotFound(data.message);
+          setStatus("error");
+        } else {
+          setStatus("error");
+        }
+      })
+      .catch(() => setStatus("error"));
+  }, [id]);
+
+  useEffect(() => {
+    if (status !== "done" || !id) return;
+    const fetchDataset = async () => {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8000/getModel?id=${id}`, {
+      const res = await fetch(`http://localhost:8000/getModelDataset?id=${id}`, {
         method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       const result = await res.json();
       if (result.success) {
-        setModelDetails(result.data);
+        setDataset(result.data);
+        console.log("Fetched data:", result.data, typeof result.data);
       }
     };
-    fetchModel();
-  }, [id]);
+    fetchDataset();
+  }, [status, id]);
 
-  if (!modelDetails) return <p>Loading...</p>;
+  const renderChart = (chart: any, idx: number) => {
+    if (!dataset || dataset.length === 0) return null;
+    if (!chart.chart_type || !plotlyChartTypes.includes(chart.chart_type)) {
+      return (
+        <div key={idx} className="p-4 border border-gray-300 rounded-lg bg-gray-50">
+          <h3 className="text-lg font-semibold text-gray-700 mb-2">Unsupported Chart Type</h3>
+          <p className="text-gray-600">Chart type: {chart.chart_type}</p>
+        </div>
+      );
+    }
+
+    // Helper to validate data
+    const validateData = (data: any[]) => data.filter(val => val !== null && val !== undefined && val !== '');
+
+    // Histogram
+    if (chart.chart_type === "histogram") {
+      const x = validateData(dataset.map(row => row[chart.columns[0]]));
+      const chartTitle = chart.title || `Histogram of ${chart.columns[0]}`;
+      return (
+        <div key={idx} className="flex flex-col">
+          <h3 className="text-lg font-bold mb-3 pb-1 border-b border-gray-200 text-gray-900 bg-gray-50 rounded-t-md px-2">
+            {chartTitle}
+          </h3>
+          <Plot
+            data={[{ type: "histogram", x }]}
+            layout={{
+              xaxis: { title: { text: chart.columns[0] } }
+            }}
+            config={{ displayModeBar: false }}
+            style={{ width: '100%', height: '400px' }}
+          />
+          {chart.insight && (
+            <div className="mt-2 text-sm text-gray-700 break-words whitespace-pre-line max-h-24 overflow-auto">
+              {chart.insight}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Scatter
+    if (chart.chart_type === "scatter" && chart.columns.length >= 2) {
+      const x = validateData(dataset.map(row => row[chart.columns[0]]));
+      const y = validateData(dataset.map(row => row[chart.columns[1]]));
+      const chartTitle = chart.title || `${chart.columns[0]} vs ${chart.columns[1]}`;
+      return (
+        <div key={idx} className="flex flex-col">
+          <h3 className="text-lg font-bold mb-3 pb-1 border-b border-gray-200 text-gray-900 bg-gray-50 rounded-t-md px-2">
+            {chartTitle}
+          </h3>
+          <Plot
+            data={[{ type: "scatter", mode: "markers", x, y }]}
+            layout={{
+              xaxis: { title: { text: chart.columns[0] } },
+              yaxis: { title: { text: chart.columns[1] } }
+            }}
+            config={{ displayModeBar: false }}
+            style={{ width: '100%', height: '400px' }}
+          />
+          {chart.insight && (
+            <div className="mt-2 text-sm text-gray-700 break-words whitespace-pre-line max-h-24 overflow-auto">
+              {chart.insight}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Bar
+    if (chart.chart_type === "bar" && chart.columns.length >= 2) {
+      const x = validateData(dataset.map(row => row[chart.columns[0]]));
+      const y = validateData(dataset.map(row => row[chart.columns[1]]));
+      const chartTitle = chart.title || `${chart.columns[1]} by ${chart.columns[0]}`;
+      return (
+        <div key={idx} className="flex flex-col">
+          <h3 className="text-lg font-bold mb-3 pb-1 border-b border-gray-200 text-gray-900 bg-gray-50 rounded-t-md px-2">
+            {chartTitle}
+          </h3>
+          <Plot
+            data={[{ type: "bar", x, y }]}
+            layout={{
+              xaxis: { title: { text: chart.columns[0] } },
+              yaxis: { title: { text: chart.columns[1] } }
+            }}
+            config={{ displayModeBar: false }}
+            style={{ width: '100%', height: '400px' }}
+          />
+          {chart.insight && (
+            <div className="mt-2 text-sm text-gray-700 break-words whitespace-pre-line max-h-24 overflow-auto">
+              {chart.insight}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Line
+    if (chart.chart_type === "line" && chart.columns.length >= 2) {
+      const x = validateData(dataset.map(row => row[chart.columns[0]]));
+      const y = validateData(dataset.map(row => row[chart.columns[1]]));
+      const chartTitle = chart.title || `${chart.columns[1]} over ${chart.columns[0]}`;
+      return (
+        <div key={idx} className="flex flex-col">
+          <h3 className="text-lg font-bold mb-3 pb-1 border-b border-gray-200 text-gray-900 bg-gray-50 rounded-t-md px-2">
+            {chartTitle}
+          </h3>
+          <Plot
+            data={[{ type: "scatter", mode: "lines+markers", x, y }]}
+            layout={{
+              xaxis: { title: { text: chart.columns[0] } },
+              yaxis: { title: { text: chart.columns[1] } }
+            }}
+            config={{ displayModeBar: false }}
+            style={{ width: '100%', height: '400px' }}
+          />
+          {chart.insight && (
+            <div className="mt-2 text-sm text-gray-700 break-words whitespace-pre-line max-h-24 overflow-auto">
+              {chart.insight}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Box
+    if (chart.chart_type === "box") {
+      const y = validateData(dataset.map(row => row[chart.columns[0]]));
+      const chartTitle = chart.title || `Box Plot of ${chart.columns[0]}`;
+      return (
+        <div key={idx} className="flex flex-col">
+          <h3 className="text-lg font-bold mb-3 pb-1 border-b border-gray-200 text-gray-900 bg-gray-50 rounded-t-md px-2">
+            {chartTitle}
+          </h3>
+          <Plot
+            data={[{ type: "box", y }]}
+            layout={{
+              xaxis: { title: { text: chart.columns[0] } }
+            }}
+            config={{ displayModeBar: false }}
+            style={{ width: '100%', height: '400px' }}
+          />
+          {chart.insight && (
+            <div className="mt-2 text-sm text-gray-700 break-words whitespace-pre-line max-h-24 overflow-auto">
+              {chart.insight}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Pie
+    if (chart.chart_type === "pie") {
+      const values = validateData(dataset.map(row => row[chart.columns[0]]));
+      const valueCounts: { [key: string]: number } = {};
+      values.forEach(value => {
+        const strValue = String(value);
+        valueCounts[strValue] = (valueCounts[strValue] || 0) + 1;
+      });
+      const labels = Object.keys(valueCounts);
+      const counts = Object.values(valueCounts);
+      const chartTitle = chart.title || `Pie Chart of ${chart.columns[0]}`;
+      return (
+        <div key={idx} className="flex flex-col">
+          <h3 className="text-lg font-bold mb-3 pb-1 border-b border-gray-200 text-gray-900 bg-gray-50 rounded-t-md px-2">
+            {chartTitle}
+          </h3>
+          <Plot
+            data={[{ type: "pie", labels, values: counts }]}
+            layout={{
+            }}
+            config={{ displayModeBar: false }}
+            style={{ width: '100%', height: '400px' }}
+          />
+          <div className="text-xs text-gray-500 mt-1 text-center">{chart.columns[0]}</div>
+          {chart.insight && (
+            <div className="mt-2 text-sm text-gray-700 break-words whitespace-pre-line max-h-24 overflow-auto">
+              {chart.insight}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Violin
+    if (chart.chart_type === "violin") {
+      const y = validateData(dataset.map(row => row[chart.columns[0]]));
+      const chartTitle = chart.title || `Violin Plot of ${chart.columns[0]}`;
+      return (
+        <div key={idx} className="flex flex-col">
+          <h3 className="text-lg font-bold mb-3 pb-1 border-b border-gray-200 text-gray-900 bg-gray-50 rounded-t-md px-2">
+            {chartTitle}
+          </h3>
+          <Plot
+            data={[{ type: "violin", y }]}
+            layout={{
+              xaxis: { title: { text: chart.columns[0] } }
+            }}
+            config={{ displayModeBar: false }}
+            style={{ width: '100%', height: '400px' }}
+          />
+          {chart.insight && (
+            <div className="mt-2 text-sm text-gray-700 break-words whitespace-pre-line max-h-24 overflow-auto">
+              {chart.insight}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Heatmap
+    if (chart.chart_type === "heatmap") {
+      const numericColumns = chart.columns;
+      const correlationData = numericColumns.map((col1: string) =>
+        numericColumns.map((col2: string) => {
+          const values1 = dataset.map(row => row[col1]).filter(v => typeof v === 'number' && !isNaN(v));
+          const values2 = dataset.map(row => row[col2]).filter(v => typeof v === 'number' && !isNaN(v));
+          if (values1.length !== values2.length || values1.length === 0) return 0;
+          const mean1 = values1.reduce((a, b) => a + b, 0) / values1.length;
+          const mean2 = values2.reduce((a, b) => a + b, 0) / values2.length;
+          const numerator = values1.reduce((sum, val, i) => sum + (val - mean1) * (values2[i] - mean2), 0);
+          const denom1 = Math.sqrt(values1.reduce((sum, val) => sum + Math.pow(val - mean1, 2), 0));
+          const denom2 = Math.sqrt(values2.reduce((sum, val) => sum + Math.pow(val - mean2, 2), 0));
+          return denom1 * denom2 === 0 ? 0 : numerator / (denom1 * denom2);
+        })
+      );
+      const chartTitle = chart.title || "Correlation Heatmap";
+      return (
+        <div key={idx} className="flex flex-col">
+          <h3 className="text-lg font-bold mb-3 pb-1 border-b border-gray-200 text-gray-900 bg-gray-50 rounded-t-md px-2">
+            {chartTitle}
+          </h3>
+          <Plot
+            data={[{ type: "heatmap", z: correlationData, x: numericColumns, y: numericColumns, colorscale: 'RdBu' }]}
+            layout={{
+              xaxis: { title: { text: numericColumns[0] } },
+              yaxis: { title: { text: numericColumns[1] } }
+            }}
+            config={{ displayModeBar: false }}
+            style={{ width: '100%', height: '400px' }}
+          />
+          {chart.insight && (
+            <div className="mt-2 text-sm text-gray-700 break-words whitespace-pre-line max-h-24 overflow-auto">
+              {chart.insight}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // Fallback (should not reach here)
+    return null;
+  };
 
   return (
     <div className="p-8">
-      <h1 className="mb-2 text-3xl font-bold">
-        Dashboard: {modelDetails.name}
-      </h1>
-      <p className="mb-1 text-gray-600">{modelDetails.description}</p>
-      <p className="mb-6 text-gray-500">Task Type: {modelDetails.task}</p>
-
-      {/* Model Information */}
-      <div className="mb-8">
-        <h2 className="mb-4 text-2xl font-semibold">Model Information</h2>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          <div className="rounded-lg bg-white p-4 shadow">
-            <h3 className="font-medium text-gray-700">Target Variable</h3>
-            <p className="text-lg">{modelDetails.target_variable}</p>
-          </div>
-          <div className="rounded-lg bg-white p-4 shadow">
-            <h3 className="font-medium text-gray-700">Model Name</h3>
-            <p className="text-lg">{modelDetails.model_name}</p>
-          </div>
-          <div className="rounded-lg bg-white p-4 shadow">
-            <h3 className="font-medium text-gray-700">Status</h3>
-            <p className="text-lg">{modelDetails.status}</p>
-          </div>
-          <div className="rounded-lg bg-white p-4 shadow">
-            <h3 className="font-medium text-gray-700">Evaluation Metric</h3>
-            <p className="text-lg">{modelDetails.evaluation_metric}</p>
-          </div>
-          <div className="rounded-lg bg-white p-4 shadow">
-            <h3 className="font-medium text-gray-700">Score</h3>
-            <p className="text-lg">
-              {modelDetails.evaluation_metric_value?.toFixed(4)}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Dataset Information */}
-      {modelDetails.dataset && !modelDetails.dataset.error && (
-        <div className="mb-8">
-          <h2 className="mb-4 text-2xl font-semibold">Dataset Information</h2>
-
-          {/* Dataset Overview */}
-          <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-            <div className="rounded-lg bg-white p-4 shadow">
-              <h3 className="font-medium text-gray-700">Rows</h3>
-              <p className="text-2xl font-bold text-blue-600">
-                {modelDetails.dataset.rows?.toLocaleString()}
-              </p>
+      <h1 className="mb-2 text-3xl font-bold">{dashboardTitle || `Dashboard: ${id}`}</h1>
+      {dashboardDescription && <p className="mb-6 text-gray-600 text-lg">{dashboardDescription}</p>}
+      {authError && <div className="text-red-500 mb-4">You must be logged in to view this dashboard.</div>}
+      {notFound && <div className="text-red-500 mb-4">{notFound}</div>}
+      {status === "pending" && <div>Generating chart suggestions...</div>}
+      {status === "done" && (
+        <div>
+          <h2 className="text-xl font-semibold mb-4">Chart Suggestions</h2>
+          {charts.length === 0 ? (
+            <div className="text-gray-500">No charts available for this dashboard.</div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {charts.map((chart, idx) => renderChart(chart, idx))}
             </div>
-            <div className="rounded-lg bg-white p-4 shadow">
-              <h3 className="font-medium text-gray-700">Columns</h3>
-              <p className="text-2xl font-bold text-green-600">
-                {modelDetails.dataset.columns}
-              </p>
-            </div>
-            <div className="rounded-lg bg-white p-4 shadow">
-              <h3 className="font-medium text-gray-700">Features</h3>
-              <p className="text-2xl font-bold text-purple-600">
-                {modelDetails.dataset.columns - 1}
-              </p>
-            </div>
-          </div>
-
-          {/* Column Information */}
-          <div className="overflow-hidden rounded-lg bg-white shadow">
-            <div className="border-b border-gray-200 px-6 py-4">
-              <h3 className="text-lg font-medium">Columns & Data Types</h3>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Column
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Data Type
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Missing Values
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {modelDetails.dataset.column_names?.map(
-                    (column: string, index: number) => (
-                      <tr key={index}>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                          {column}
-                          {column === modelDetails.target_variable && (
-                            <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
-                              Target
-                            </span>
-                          )}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                          {modelDetails.dataset.data_types?.[column]}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                          {modelDetails.dataset.missing_values?.[column] || 0}
-                        </td>
-                      </tr>
-                    ),
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          {/* Sample Data */}
-          {modelDetails.dataset.sample_data &&
-            modelDetails.dataset.sample_data.length > 0 && (
-              <div className="mt-6 overflow-hidden rounded-lg bg-white shadow">
-                <div className="border-b border-gray-200 px-6 py-4">
-                  <h3 className="text-lg font-medium">
-                    Sample Data (First 5 rows)
-                  </h3>
-                </div>
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        {modelDetails.dataset.column_names?.map(
-                          (column: string, index: number) => (
-                            <th
-                              key={index}
-                              className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500"
-                            >
-                              {column}
-                            </th>
-                          ),
-                        )}
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {modelDetails.dataset.sample_data.map(
-                        (row: any, rowIndex: number) => (
-                          <tr key={rowIndex}>
-                            {modelDetails.dataset.column_names?.map(
-                              (column: string, colIndex: number) => (
-                                <td
-                                  key={colIndex}
-                                  className="whitespace-nowrap px-6 py-4 text-sm text-gray-900"
-                                >
-                                  {row[column] !== null &&
-                                  row[column] !== undefined
-                                    ? String(row[column])
-                                    : "null"}
-                                </td>
-                              ),
-                            )}
-                          </tr>
-                        ),
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
+          )}
         </div>
       )}
-
-      {/* Error handling for dataset */}
-      {modelDetails.dataset?.error && (
-        <div className="rounded-md border border-yellow-200 bg-yellow-50 p-4">
-          <div className="flex">
-            <div className="shrink-0">
-              <svg
-                className="size-5 text-yellow-400"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-yellow-800">
-                Dataset Information Unavailable
-              </h3>
-              <div className="mt-2 text-sm text-yellow-700">
-                <p>{modelDetails.dataset.error}</p>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {status === "error" && !authError && !notFound && <div className="text-red-500">Error generating chart suggestions.</div>}
     </div>
   );
 }

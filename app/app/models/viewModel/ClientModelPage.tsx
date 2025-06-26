@@ -15,6 +15,8 @@ export default function ClientModelPage() {
   const [plotImage, setPlotImage] = useState<string | null>(null);
   const [predictionData, setPredictionData] = useState<any>(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+  const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
+  const [authError, setAuthError] = useState<boolean>(false);
 
   useEffect(() => {
     const fetchModel = async () => {
@@ -293,6 +295,79 @@ export default function ClientModelPage() {
     }
   };
 
+  const handleGenerateDashboard = async () => {
+    setIsGeneratingDashboard(true);
+    setAuthError(false);
+    try {
+      // Start the chart suggestion task
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setAuthError(true);
+        setIsGeneratingDashboard(false);
+        setModalMessage("You must be logged in to generate a dashboard.");
+        setShowModal(true);
+        return;
+      }
+      const response = await fetch("http://localhost:8000/aiapp/start-suggest-charts/", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ model_id: id }),
+      });
+      if (response.status === 401) {
+        setAuthError(true);
+        setIsGeneratingDashboard(false);
+        setModalMessage("You must be logged in to generate a dashboard.");
+        setShowModal(true);
+        return;
+      }
+      const result = await response.json();
+      if (!result.success || !result.task_id) throw new Error(result.message || "Failed to start dashboard suggestion");
+
+      setModalMessage("Dashboard suggestion started! You will be redirected once the dashboard is ready.");
+      setShowModal(true);
+
+      // Poll for completion
+      const poll = async () => {
+        const token = localStorage.getItem("token");
+        const statusRes = await fetch(
+          "http://localhost:8000/aiapp/get-suggest-charts-result/",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({ task_id: result.task_id }),
+          }
+        );
+        if (statusRes.status === 401) {
+          setAuthError(true);
+          setIsGeneratingDashboard(false);
+          setModalMessage("You must be logged in to generate a dashboard.");
+          setShowModal(true);
+          return;
+        }
+        const status = await statusRes.json();
+        if (status.status === "SUCCESS") {
+          router.push(`/dashboards/${id}`);
+        } else if (status.status === "FAILURE") {
+          setIsGeneratingDashboard(false);
+          setModalMessage("Dashboard suggestion failed.");
+        } else {
+          setTimeout(poll, 2000);
+        }
+      };
+      poll();
+    } catch (err: any) {
+      setIsGeneratingDashboard(false);
+      setModalMessage(err.message || "Dashboard suggestion failed.");
+      setShowModal(true);
+    }
+  };
+
   if (!modelDetails) return <p>Loading...</p>;
 
   return (
@@ -322,10 +397,11 @@ export default function ClientModelPage() {
               {isGeneratingReport ? "Generating Report..." : "Generate Report"}
             </Button>
             <Button
-              onClick={() => router.push(`/dashboards/${id}`)}
+              onClick={handleGenerateDashboard}
+              disabled={isGeneratingDashboard}
               className="ml-4 bg-blue-600 px-6 hover:bg-blue-700"
             >
-              Generate Dashboard
+              {isGeneratingDashboard ? "Generating Dashboard..." : "Dashboards"}
             </Button>
           </div>
         </div>
@@ -550,6 +626,10 @@ export default function ClientModelPage() {
           </div>
         </Modal.Body>
       </Modal>
+
+      {authError && (
+        <div className="text-red-500 mb-4">You must be logged in to generate a dashboard.</div>
+      )}
     </div>
   );
 }
