@@ -31,7 +31,7 @@ export default function ClientModelPage() {
           );
         }
 
-        const res = await fetch(`http://localhost:8000/getModel?id=${id}`, {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/getModel?id=${id}`, {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -127,7 +127,7 @@ export default function ClientModelPage() {
 
       data.append("id", id as string);
 
-      const response = await fetch("http://localhost:8000/infer/", {
+      const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/infer/", {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -210,7 +210,7 @@ export default function ClientModelPage() {
         throw new Error("No authentication token found. Please log in again.");
       }
 
-      const response = await fetch("http://localhost:8000/aiapp/generate/", {
+      const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/generate/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -236,7 +236,7 @@ export default function ClientModelPage() {
           const pollTaskStatus = async () => {
             try {
               const statusResponse = await fetch(
-                `http://localhost:8000/aiapp/task-status/?task_id=${result.task_id}`,
+                `${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/task-status/?task_id=${result.task_id}`,
                 {
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -308,7 +308,7 @@ export default function ClientModelPage() {
         setShowModal(true);
         return;
       }
-      const response = await fetch("http://localhost:8000/aiapp/start-suggest-charts/", {
+      const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/start-suggest-charts/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -333,7 +333,7 @@ export default function ClientModelPage() {
       const poll = async () => {
         const token = localStorage.getItem("token");
         const statusRes = await fetch(
-          "http://localhost:8000/aiapp/get-suggest-charts-result/",
+          "${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/get-suggest-charts-result/",
           {
             method: "POST",
             headers: {

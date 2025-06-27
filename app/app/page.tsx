@@ -18,7 +18,7 @@ export default function ModelsSection() {
       return;
     }
 
-    fetch("http://localhost:8000/getAllModels/", {
+    fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/getAllModels/", {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,

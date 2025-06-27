@@ -34,7 +34,7 @@ export default function DashboardPage() {
       setStatus("error");
       return;
     }
-    fetch(`http://localhost:8000/aiapp/get-dashboard-by-model?model_id=${id}`, {
+    fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/get-dashboard-by-model?model_id=${id}`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
@@ -72,7 +72,7 @@ export default function DashboardPage() {
     if (status !== "done" || !id) return;
     const fetchDataset = async () => {
       const token = localStorage.getItem("token");
-      const res = await fetch(`http://localhost:8000/getModelDataset?id=${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/getModelDataset?id=${id}`, {
         method: "GET",
         headers: { Authorization: `Bearer ${token}` },
       });

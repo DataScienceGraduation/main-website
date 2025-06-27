@@ -38,7 +38,7 @@ export default function ClientModelPage() {
           throw new Error("Authentication token not found.");
         }
 
-        const response = await fetch("http://localhost:8000/automl/list/", {
+        const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/automl/list/", {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -62,7 +62,7 @@ export default function ClientModelPage() {
     const interval = setInterval(async () => {
       try {
         const token = localStorage.getItem("token");
-        const statusResponse = await fetch(`http://localhost:8000/aiapp/task-status/?task_id=${taskId}`, {
+        const statusResponse = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/task-status/?task_id=${taskId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
@@ -99,7 +99,7 @@ export default function ClientModelPage() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:8000/aiapp/generate/", {
+      const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/generate/", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

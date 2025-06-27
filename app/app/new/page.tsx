@@ -94,7 +94,7 @@ export default function MultiStepWizard() {
       formData.append("taskType", taskType);
       formData.append("description", description);
 
-      const uploadUrl = "http://localhost:8000/loadData/";
+      const uploadUrl = "${process.env.NEXT_PUBLIC_BACKEND_URL}/loadData/";
 
       const response = await fetch(uploadUrl, {
         method: "POST",
@@ -124,7 +124,7 @@ export default function MultiStepWizard() {
   };
 
   const handleSubmitJob = async () => {
-    const trainUrl = "http://localhost:8000/trainModel/";
+    const trainUrl = "${process.env.NEXT_PUBLIC_BACKEND_URL}/trainModel/";
     const token = localStorage.getItem("token");
 
     const formData = new FormData();

@@ -95,7 +95,7 @@ function ReportComponent() {
           }
 
           const response = await fetch(
-            `http://localhost:8000/aiapp/get/?report_id=${reportId}`,
+            `${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/get/?report_id=${reportId}`,
             {
               headers: {
                 Authorization: `Bearer ${token}`,

@@ -64,7 +64,7 @@ const LoginPage = () => {
         });
       };
       
-      const res = await fetch(`http://localhost:8000${apiUrl}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}${apiUrl}`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: getRequestBody(),
@@ -82,7 +82,7 @@ const LoginPage = () => {
       }
 
       if (mode === "register") {
-        const loginRes = await fetch("http://localhost:8000/login/", {
+        const loginRes = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/login/", {
           method: "POST",
           headers: { "Content-Type": "application/x-www-form-urlencoded" },
           body: new URLSearchParams({ 
