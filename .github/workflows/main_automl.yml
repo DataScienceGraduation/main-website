@@ -30,8 +30,8 @@ jobs:
 
       - name: Build and push Docker image
         run: |
-          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/automl:${{ github.sha }}
-          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/automl:${{ github.sha }}
+          docker build . -t ${{ secrets.REGISTRY_LOGIN_SERVER }}/mainwebsite:${{ github.sha }}
+          docker push ${{ secrets.REGISTRY_LOGIN_SERVER }}/mainwebsite:${{ github.sha }}
 
       - name: Deploy to Azure Container Apps
         uses: azure/container-apps-deploy-action@v1
@@ -39,4 +39,4 @@ jobs:
           acrName: ${{ secrets.REGISTRY_LOGIN_SERVER }}
           containerAppName: ${{ secrets.CONTAINER_APP_NAME }}
           resourceGroup: ${{ secrets.RESOURCE_GROUP }}
-          imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/automl:${{ github.sha }}
+          imageToDeploy: ${{ secrets.REGISTRY_LOGIN_SERVER }}/mainwebsite:${{ github.sha }}
