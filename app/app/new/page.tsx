@@ -13,6 +13,7 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import { useRouter } from "next/navigation";
+import { getAbsoluteUrl } from "../../utils/url";
 
 export default function MultiStepWizard() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -51,7 +52,7 @@ export default function MultiStepWizard() {
     { value: "%m-%d-%Y", label: "MM-DD-YYYY" },
     { value: "%Y/%m/%d", label: "YYYY/MM/DD" },
     { value: "%d/%m/%y %H:%M", label: "DD/MM/YY HH:MM" },
-    { value: "%Y-%m-%d %H:%M:%S", label: "YYYY-MM-DD HH:MM:SS" }
+    { value: "%Y-%m-%d %H:%M:%S", label: "YYYY-MM-DD HH:MM:SS" },
   ];
 
   // --- STEP NAVIGATION ---
@@ -94,7 +95,7 @@ export default function MultiStepWizard() {
       formData.append("taskType", taskType);
       formData.append("description", description);
 
-      const uploadUrl = "${process.env.NEXT_PUBLIC_BACKEND_URL}/loadData/";
+      const uploadUrl = getAbsoluteUrl("/loadData/");
 
       const response = await fetch(uploadUrl, {
         method: "POST",
@@ -124,7 +125,7 @@ export default function MultiStepWizard() {
   };
 
   const handleSubmitJob = async () => {
-    const trainUrl = "${process.env.NEXT_PUBLIC_BACKEND_URL}/trainModel/";
+    const trainUrl = getAbsoluteUrl("/trainModel/");
     const token = localStorage.getItem("token");
 
     const formData = new FormData();
@@ -132,12 +133,12 @@ export default function MultiStepWizard() {
     formData.append("name", modelName);
     formData.append("description", description);
     formData.append("task", taskType);
-    
+
     if (taskType === "TimeSeries") {
       formData.append("datetime_column", datetimeColumn);
       formData.append("date_format", dateFormat);
     }
-    
+
     if (taskType !== "Clustering") {
       formData.append("target_variable", targetVariable);
     }
@@ -319,23 +320,24 @@ export default function MultiStepWizard() {
               >
                 <div className="mb-8 p-4">
                   <h1 className="p-4 text-2xl font-bold">
-                  {taskType === "TimeSeries"
+                    {taskType === "TimeSeries"
                       ? "Step 2: Target Variable Selection and Datetime Column"
                       : "Step 2: Target Variable Selection"}
-
                   </h1>
                   <h2 className="mb-4 text-xl font-semibold">
                     {taskType === "Clustering"
                       ? "Select Features for Clustering"
-                      : taskType==="TimeSeries"
-                      ? ""
-                      : "Select Target Variable"}
+                      : taskType === "TimeSeries"
+                        ? ""
+                        : "Select Target Variable"}
                   </h2>
                   <div className="grid gap-4">
                     {taskType === "TimeSeries" ? (
                       <>
                         <div className="space-y-2">
-                          <h3 className="text-lg font-semibold">Select Target Variable</h3>
+                          <h3 className="text-lg font-semibold">
+                            Select Target Variable
+                          </h3>
                           <Select
                             id="targetVariable"
                             required
@@ -351,7 +353,9 @@ export default function MultiStepWizard() {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <h3 className="text-lg font-semibold">Select Datetime Column</h3>
+                          <h3 className="text-lg font-semibold">
+                            Select Datetime Column
+                          </h3>
                           <Select
                             id="datetimeColumn"
                             required
@@ -367,7 +371,9 @@ export default function MultiStepWizard() {
                           </Select>
                         </div>
                         <div className="space-y-2">
-                          <h3 className="text-lg font-semibold">Select Date Format</h3>
+                          <h3 className="text-lg font-semibold">
+                            Select Date Format
+                          </h3>
                           <Select
                             id="dateFormat"
                             required

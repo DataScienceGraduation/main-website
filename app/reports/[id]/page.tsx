@@ -7,7 +7,8 @@ import { HiInformationCircle, HiDownload } from "react-icons/hi";
 import ProtectedPage from "@/app/components/ProtectedPage";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-import ReactMarkdown from 'react-markdown';
+import ReactMarkdown from "react-markdown";
+import { getAbsoluteUrl } from "../../utils/url";
 
 // Define TypeScript interfaces for the report data
 interface ModelEntry {
@@ -61,26 +62,26 @@ function ReportComponent() {
 
     setIsDownloading(true);
     try {
-        const canvas = await html2canvas(content, {
-            scale: 2, // Higher scale for better quality
-            useCORS: true,
-            logging: false,
-        });
+      const canvas = await html2canvas(content, {
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+        logging: false,
+      });
 
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-            orientation: 'p',
-            unit: 'px',
-            format: [canvas.width, canvas.height]
-        });
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF({
+        orientation: "p",
+        unit: "px",
+        format: [canvas.width, canvas.height],
+      });
 
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        pdf.save(`report_${reportId}.pdf`);
+      pdf.addImage(imgData, "PNG", 0, 0, canvas.width, canvas.height);
+      pdf.save(`report_${reportId}.pdf`);
     } catch (error) {
-        console.error("Failed to generate PDF:", error);
-        setError("Failed to generate PDF. Please try again.");
+      console.error("Failed to generate PDF:", error);
+      setError("Failed to generate PDF. Please try again.");
     } finally {
-        setIsDownloading(false);
+      setIsDownloading(false);
     }
   };
 
@@ -95,17 +96,20 @@ function ReportComponent() {
           }
 
           const response = await fetch(
-            `${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/get/?report_id=${reportId}`,
+            getAbsoluteUrl(`/aiapp/get/?report_id=${reportId}`),
             {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
-            }
+            },
           );
 
           if (!response.ok) {
             const errorData = await response.json();
-            throw new Error(errorData.message || `Failed to fetch report: ${response.statusText}`);
+            throw new Error(
+              errorData.message ||
+                `Failed to fetch report: ${response.statusText}`,
+            );
           }
 
           const data = await response.json();
@@ -127,9 +131,11 @@ function ReportComponent() {
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-screen">
+      <div className="flex h-screen items-center justify-center">
         <Spinner size="xl" />
-        <p className="ml-4 text-lg">Your AI Data Analyst is generating the report, please wait...</p>
+        <p className="ml-4 text-lg">
+          Your AI Data Analyst is generating the report, please wait...
+        </p>
       </div>
     );
   }
@@ -153,28 +159,28 @@ function ReportComponent() {
   }
 
   const formatInsightSection = (text: string) => {
-    if (!text) return '';
-    let content = text.replace(/^\d+\.\s.*?\n/, '');
+    if (!text) return "";
+    let content = text.replace(/^\d+\.\s.*?\n/, "");
     content = content.replace(/-\s/g, '</li><li class="mb-2">');
     return `<ul class="list-disc list-inside">${content}</ul>`;
   };
 
   const aiInsightsSections = reportData.report.ai_insights
-    .split('## ')
-    .filter(section => section.trim() !== '');
+    .split("## ")
+    .filter((section) => section.trim() !== "");
 
   const getSection = (title: string) => {
-      return aiInsightsSections.find(sec => sec.trim().startsWith(title));
-  }
-  
-  const businessImpact = getSection('6. Business Impact Analysis');
-  
+    return aiInsightsSections.find((sec) => sec.trim().startsWith(title));
+  };
+
+  const businessImpact = getSection("6. Business Impact Analysis");
+
   return (
-    <div className="bg-gray-50 min-h-screen p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto">
-        <header className="mb-8 flex justify-between items-center">
+    <div className="min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      <div className="mx-auto max-w-7xl">
+        <header className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-4xl font-bold text-gray-800 tracking-tight">
+            <h1 className="text-4xl font-bold tracking-tight text-gray-800">
               Analysis of {reportData.report.model_entry.name}
             </h1>
             <p className="mt-2 text-lg text-gray-500">
@@ -182,26 +188,29 @@ function ReportComponent() {
             </p>
           </div>
           <Button onClick={handleDownloadPdf} disabled={isDownloading}>
-            <HiDownload className="mr-2 h-5 w-5" />
-            {isDownloading ? 'Downloading...' : 'Download as PDF'}
+            <HiDownload className="mr-2 size-5" />
+            {isDownloading ? "Downloading..." : "Download as PDF"}
           </Button>
         </header>
 
         <div ref={reportContentRef}>
           <div className="space-y-12">
             {reportData.charts.map((chart, index) => (
-              <Card key={chart.id} className="w-full shadow-sm hover:shadow-xl transition-shadow duration-300 overflow-hidden">
+              <Card
+                key={chart.id}
+                className="w-full overflow-hidden shadow-sm transition-shadow duration-300 hover:shadow-xl"
+              >
                 <div className="p-4 sm:p-6">
-                  <h3 className="text-2xl font-bold text-gray-800 mb-4">
+                  <h3 className="mb-4 text-2xl font-bold text-gray-800">
                     {index + 1}. {chart.title}
                   </h3>
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                    <div className="bg-white p-4 rounded-lg border border-gray-200 flex justify-center items-center h-[450px]">
+                  <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-2">
+                    <div className="flex h-[450px] items-center justify-center rounded-lg border border-gray-200 bg-white p-4">
                       {chart.chart_image_base64 ? (
                         <img
                           src={`data:image/png;base64,${chart.chart_image_base64}`}
                           alt={chart.title}
-                          className="max-w-full max-h-full object-contain"
+                          className="max-h-full max-w-full object-contain"
                         />
                       ) : (
                         <div className="text-center text-gray-500">
@@ -209,9 +218,11 @@ function ReportComponent() {
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col h-full">
-                      <h4 className="font-semibold text-gray-700 text-xl mb-2">Chart Explanation</h4>
-                      <div className="flex-grow p-4 bg-gray-50 rounded-lg text-gray-600">
+                    <div className="flex h-full flex-col">
+                      <h4 className="mb-2 text-xl font-semibold text-gray-700">
+                        Chart Explanation
+                      </h4>
+                      <div className="grow rounded-lg bg-gray-50 p-4 text-gray-600">
                         <ReactMarkdown>{chart.description}</ReactMarkdown>
                       </div>
                     </div>
@@ -222,17 +233,21 @@ function ReportComponent() {
           </div>
 
           <Card className="mt-12 w-full shadow-lg">
-              <h2 className="text-2xl font-semibold text-gray-700 mb-4">AI Business Summary</h2>
-              <div className="prose prose-lg max-w-none">
-                  <h3 className="font-semibold text-xl text-gray-800">Business Impact Analysis</h3>
-                  {businessImpact ? (
-                    <div className="prose prose-lg max-w-none">
-                      <ReactMarkdown>{businessImpact}</ReactMarkdown>
-                    </div>
-                  ) : (
-                    <p>No business impact analysis available.</p>
-                  )}
-              </div>
+            <h2 className="mb-4 text-2xl font-semibold text-gray-700">
+              AI Business Summary
+            </h2>
+            <div className="prose prose-lg max-w-none">
+              <h3 className="text-xl font-semibold text-gray-800">
+                Business Impact Analysis
+              </h3>
+              {businessImpact ? (
+                <div className="prose prose-lg max-w-none">
+                  <ReactMarkdown>{businessImpact}</ReactMarkdown>
+                </div>
+              ) : (
+                <p>No business impact analysis available.</p>
+              )}
+            </div>
           </Card>
         </div>
       </div>
@@ -240,11 +255,10 @@ function ReportComponent() {
   );
 }
 
-
 export default function ReportPage() {
-    return (
-        <ProtectedPage>
-            <ReportComponent />
-        </ProtectedPage>
-    );
+  return (
+    <ProtectedPage>
+      <ReportComponent />
+    </ProtectedPage>
+  );
 }

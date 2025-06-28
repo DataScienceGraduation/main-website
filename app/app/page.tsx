@@ -3,7 +3,9 @@
 import React, { useState, useEffect } from "react";
 import { Card, Badge, Spinner, Alert, Button } from "flowbite-react";
 import { Shapes } from "flowbite-react-icons/solid";
-import { ChartMixed } from "flowbite-react-icons/outline"; 
+import { ChartMixed } from "flowbite-react-icons/outline";
+
+import { getAbsoluteUrl } from "../utils/url";
 
 export default function ModelsSection() {
   const [models, setModels] = useState<any[]>([]);
@@ -18,7 +20,7 @@ export default function ModelsSection() {
       return;
     }
 
-    fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/getAllModels/", {
+    fetch(getAbsoluteUrl("/getAllModels/"), {
       headers: {
         "Content-Type": "application/json",
         Authorization: `Bearer ${token}`,
@@ -130,7 +132,7 @@ export default function ModelsSection() {
             />
           </svg>
         );
-      case "TimeSeries": 
+      case "TimeSeries":
         return <ChartMixed width="24" height="24" viewBox="0 0 24 24" />;
       default:
         return null;
@@ -212,7 +214,8 @@ export default function ModelsSection() {
                   Evaluation Metric: {model.evaluation_metric}
                 </p>
                 <p className="text-gray-500">
-                  Metric Value: {Math.abs(model.evaluation_metric_value).toFixed(2)}
+                  Metric Value:{" "}
+                  {Math.abs(model.evaluation_metric_value).toFixed(2)}
                 </p>
                 <div className="mt-4 w-40">
                   <Badge

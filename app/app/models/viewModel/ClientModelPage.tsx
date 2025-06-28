@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Label, TextInput, Button, Modal } from "flowbite-react";
 
+import { getAbsoluteUrl } from "../../../utils/url";
+
 export default function ClientModelPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -31,7 +33,7 @@ export default function ClientModelPage() {
           );
         }
 
-        const res = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/getModel?id=${id}`, {
+        const res = await fetch(getAbsoluteUrl(`/getModel?id=${id}`), {
           method: "GET",
           headers: {
             "Content-Type": "application/json",
@@ -127,7 +129,7 @@ export default function ClientModelPage() {
 
       data.append("id", id as string);
 
-      const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/infer/", {
+      const response = await fetch(getAbsoluteUrl("/infer/"), {
         method: "POST",
         headers: {
           Authorization: `Bearer ${localStorage.getItem("token")}`,
@@ -210,7 +212,7 @@ export default function ClientModelPage() {
         throw new Error("No authentication token found. Please log in again.");
       }
 
-      const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/generate/", {
+      const response = await fetch(getAbsoluteUrl("/aiapp/generate/"), {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -236,7 +238,7 @@ export default function ClientModelPage() {
           const pollTaskStatus = async () => {
             try {
               const statusResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/task-status/?task_id=${result.task_id}`,
+                getAbsoluteUrl(`/aiapp/task-status/?task_id=${result.task_id}`),
                 {
                   headers: {
                     Authorization: `Bearer ${token}`,
@@ -308,14 +310,17 @@ export default function ClientModelPage() {
         setShowModal(true);
         return;
       }
-      const response = await fetch("${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/start-suggest-charts/", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+      const response = await fetch(
+        getAbsoluteUrl("/aiapp/start-suggest-charts/"),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ model_id: id }),
         },
-        body: JSON.stringify({ model_id: id }),
-      });
+      );
       if (response.status === 401) {
         setAuthError(true);
         setIsGeneratingDashboard(false);
@@ -324,16 +329,21 @@ export default function ClientModelPage() {
         return;
       }
       const result = await response.json();
-      if (!result.success || !result.task_id) throw new Error(result.message || "Failed to start dashboard suggestion");
+      if (!result.success || !result.task_id)
+        throw new Error(
+          result.message || "Failed to start dashboard suggestion",
+        );
 
-      setModalMessage("Dashboard suggestion started! You will be redirected once the dashboard is ready.");
+      setModalMessage(
+        "Dashboard suggestion started! You will be redirected once the dashboard is ready.",
+      );
       setShowModal(true);
 
       // Poll for completion
       const poll = async () => {
         const token = localStorage.getItem("token");
         const statusRes = await fetch(
-          "${process.env.NEXT_PUBLIC_BACKEND_URL}/aiapp/get-suggest-charts-result/",
+          getAbsoluteUrl("/aiapp/get-suggest-charts-result/"),
           {
             method: "POST",
             headers: {
@@ -341,7 +351,7 @@ export default function ClientModelPage() {
               Authorization: `Bearer ${token}`,
             },
             body: JSON.stringify({ task_id: result.task_id }),
-          }
+          },
         );
         if (statusRes.status === 401) {
           setAuthError(true);
@@ -613,10 +623,7 @@ export default function ClientModelPage() {
                 </div>
                 {predictionData && Array.isArray(predictionData.prediction) && (
                   <div className="flex justify-center">
-                    <Button
-                      onClick={downloadCSV}
-                      className=" px-6"
-                    >
+                    <Button onClick={downloadCSV} className=" px-6">
                       Download Forecast Data (CSV)
                     </Button>
                   </div>
@@ -628,7 +635,9 @@ export default function ClientModelPage() {
       </Modal>
 
       {authError && (
-        <div className="text-red-500 mb-4">You must be logged in to generate a dashboard.</div>
+        <div className="mb-4 text-red-500">
+          You must be logged in to generate a dashboard.
+        </div>
       )}
     </div>
   );
