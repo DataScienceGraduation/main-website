@@ -12,6 +12,7 @@ WORKDIR /app
 # Install dependencies
 COPY package.json ./
 COPY package-lock.json ./
+COPY .env.production.local ./
 RUN npm install
 
 # Copy the rest of the application code
