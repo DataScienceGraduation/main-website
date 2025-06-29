@@ -477,6 +477,12 @@ export default function ClientModelPage() {
             >
               {isGeneratingDashboard ? "Generating Dashboard..." : "Dashboards"}
             </Button>
+            <Button
+              onClick={() => router.push(`/models/profiling?id=${id}`)}
+              className="ml-4 bg-green-600 px-6 hover:bg-green-700"
+            >
+              Profiling
+            </Button>
           </div>
         </div>
 
