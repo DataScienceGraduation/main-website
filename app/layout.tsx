@@ -27,11 +27,16 @@ export default function RootLayout({
   const [hasToken, setHasToken] = useState(false);
   const pathname = usePathname();
   const isLoginPage = pathname === "/login";
+  const [isInIframe, setIsInIframe] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
     setHasToken(!!token);
   }, [pathname]);
+
+  useEffect(() => {
+    setIsInIframe(window.self !== window.top);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -43,8 +48,8 @@ export default function RootLayout({
     <html lang="en">
       <head></head>
       <body className={inter.className}>
-        {/* Conditionally render Navbar */}
-        {!isLoginPage && (
+        {/* Only show Navbar if not in iframe and not login page */}
+        {!isInIframe && !isLoginPage && (
           <Navbar fluid rounded>
             <NavbarBrand href="/">
               <Image
@@ -89,8 +94,8 @@ export default function RootLayout({
 
         <TransitionWrapper>{children}</TransitionWrapper>
 
-        {/* Conditionally render Footer */}
-        {!isLoginPage && (
+        {/* Only show Footer if not in iframe and not login page */}
+        {!isInIframe && !isLoginPage && (
           <Footer container>
             <div className="w-full py-12">
               <div className="grid w-full justify-between sm:flex sm:justify-between md:flex md:justify-between lg:flex lg:justify-between">

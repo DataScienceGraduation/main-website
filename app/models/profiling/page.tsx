@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import { getAbsoluteUrl } from "../../utils/url";
 
@@ -9,7 +9,6 @@ export default function ProfilingPage() {
   const [profileHtml, setProfileHtml] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const generateProfile = async () => {
@@ -56,26 +55,6 @@ export default function ProfilingPage() {
     generateProfile();
   }, [id]);
 
-  useEffect(() => {
-    if (profileHtml && profileRef.current) {
-      // Find all script tags in the injected HTML
-      const scripts = profileRef.current.getElementsByTagName("script");
-      for (let i = 0; i < scripts.length; i++) {
-        const script = scripts[i];
-        const newScript = document.createElement("script");
-        // Copy script attributes
-        for (let j = 0; j < script.attributes.length; j++) {
-          const attr = script.attributes[j];
-          newScript.setAttribute(attr.name, attr.value);
-        }
-        // Copy script content
-        newScript.text = script.text;
-        // Replace the old script with the new one to execute it
-        script.parentNode?.replaceChild(newScript, script);
-      }
-    }
-  }, [profileHtml]);
-
   if (isLoading) {
     return (
       <div className="flex h-screen items-center justify-center">
@@ -104,14 +83,12 @@ export default function ProfilingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-
-
       <div className="mx-auto max-w-7xl px-6 py-8">
         {profileHtml && (
-          <div
-            ref={profileRef}
-            dangerouslySetInnerHTML={{ __html: profileHtml }}
-            className="profile-content"
+          <iframe
+            srcDoc={profileHtml}
+            title="Data Profile"
+            style={{ width: "100%", height: "90vh", border: "none" }}
           />
         )}
       </div>
