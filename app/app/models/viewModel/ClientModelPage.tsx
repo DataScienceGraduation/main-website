@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Label, TextInput, Button, Modal } from "flowbite-react";
+import { HiCloudUpload } from "react-icons/hi";
 
 import { getAbsoluteUrl } from "../../../utils/url";
 
@@ -20,6 +21,14 @@ export default function ClientModelPage() {
   const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
   const [authError, setAuthError] = useState<boolean>(false);
   const wsRef = useRef<WebSocket | null>(null);
+
+  // New state for prediction mode
+  const [predictionMode, setPredictionMode] = useState<'single' | 'batch'>('single');
+  const [batchFile, setBatchFile] = useState<File | null>(null);
+  const [batchResult, setBatchResult] = useState<any>(null);
+
+  // Only allow batch prediction for non-TimeSeries models
+  const allowBatchPrediction = modelDetails && modelDetails.task !== "TimeSeries";
 
   useEffect(() => {
     const fetchModel = async () => {
@@ -265,7 +274,7 @@ export default function ClientModelPage() {
                 );
               } else {
                 // Still processing, poll again after 2 seconds
-                setTimeout(pollTaskStatus, 2000);
+                setTimeout(pollTaskStatus, 15000);
               }
             } catch (error) {
               console.error("Error polling task status:", error);
@@ -277,7 +286,7 @@ export default function ClientModelPage() {
           };
 
           // Start polling
-          setTimeout(pollTaskStatus, 2000);
+          setTimeout(pollTaskStatus, 15000);
         } else if (result.report_id) {
           // Synchronous processing completed
           router.push(`/reports/${result.report_id}`);
@@ -385,6 +394,54 @@ export default function ClientModelPage() {
     }
   };
 
+  // Handler for batch file upload
+  const handleBatchFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setBatchFile(e.target.files[0]);
+    }
+  };
+
+  // Handler for batch prediction
+  const handleBatchPredict = async () => {
+    if (!batchFile) return;
+    const formData = new FormData();
+    formData.append("file", batchFile);
+    formData.append("model_id", id as string);
+
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch(getAbsoluteUrl("/automlapp/batch_predict/"), {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (response.ok) {
+        // Download the CSV file
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "batch_predictions.csv";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+        setBatchResult(null); // Clear any previous error
+      } else {
+        // Handle error (show message)
+        let errorMsg = "Batch prediction failed.";
+        try {
+          const errorData = await response.json();
+          errorMsg = errorData.message || errorMsg;
+        } catch {}
+        setBatchResult({ error: errorMsg });
+      }
+    } catch (err) {
+      setBatchResult({ error: "Network error during batch prediction." });
+    }
+  };
+
   if (!modelDetails) return <p>Loading...</p>;
 
   return (
@@ -423,13 +480,31 @@ export default function ClientModelPage() {
           </div>
         </div>
 
+        {/* Prediction Mode Toggle (only for non-TimeSeries) */}
+        {allowBatchPrediction && (
+          <div className="mt-8 flex gap-4">
+            <Button
+              color={predictionMode === 'single' ? 'primary' : 'gray'}
+              onClick={() => setPredictionMode('single')}
+            >
+              Single Prediction
+            </Button>
+            <Button
+              color={predictionMode === 'batch' ? 'primary' : 'gray'}
+              onClick={() => setPredictionMode('batch')}
+            >
+              Batch Prediction
+            </Button>
+          </div>
+        )}
+
         {modelDetails.task === "Clustering" && (
           <div className="mt-4 rounded bg-blue-50 p-4">
             <p className="text-blue-700">
               This is a clustering model. It will assign your input data to one
               of the identified clusters. The model&apos;s performance is
               measured using a custom score of Silhouette score and
-              Davies-Bouldin Index:{" "}
+              Davies-Bouldin Index: {" "}
               {modelDetails.evaluation_metric_value.toFixed(4)}
             </p>
           </div>
@@ -445,165 +520,215 @@ export default function ClientModelPage() {
         )}
       </div>
 
-      {/* form */}
+      {/* Prediction UI */}
       <div className="container mx-auto flex-1 px-4 py-8">
-        <form onSubmit={handleSubmit}>
-          {modelDetails.task === "TimeSeries" ? (
-            <div className="mx-auto max-w-md">
-              <div className="mb-6">
-                <Label
-                  htmlFor="forecastHorizon"
-                  value="Number of timesteps to forecast"
-                />
-                <TextInput
-                  id="forecastHorizon"
-                  name="forecastHorizon"
-                  type="number"
-                  min="1"
-                  max="100"
-                  placeholder="Enter number of timesteps (e.g., 1, 5, 10)"
-                  value={forecastHorizon}
-                  onChange={(e) =>
-                    setForecastHorizon(parseInt(e.target.value) || 1)
-                  }
-                  required
-                />
-                <p className="mt-1 text-xs text-gray-500">
-                  Enter how many future timesteps you want to predict (minimum:
-                  1, maximum: 100)
-                </p>
+        {/* Only show batch UI if allowed, otherwise always show single */}
+        {(!allowBatchPrediction || predictionMode === 'single') ? (
+          // Existing single prediction form
+          <form onSubmit={handleSubmit}>
+            {modelDetails.task === "TimeSeries" ? (
+              <div className="mx-auto max-w-md">
+                <div className="mb-6">
+                  <Label
+                    htmlFor="forecastHorizon"
+                    value="Number of timesteps to forecast"
+                  />
+                  <TextInput
+                    id="forecastHorizon"
+                    name="forecastHorizon"
+                    type="number"
+                    min="1"
+                    max="100"
+                    placeholder="Enter number of timesteps (e.g., 1, 5, 10)"
+                    value={forecastHorizon}
+                    onChange={(e) =>
+                      setForecastHorizon(parseInt(e.target.value) || 1)
+                    }
+                    required
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    Enter how many future timesteps you want to predict (minimum:
+                    1, maximum: 100)
+                  </p>
+                </div>
               </div>
-            </div>
-          ) : (
-            <div className="grid gap-6 sm:grid-cols-3">
-              {modelDetails.list_of_features &&
-              Object.keys(modelDetails.list_of_features).length > 0 ? (
-                Object.keys(modelDetails.list_of_features).map((key) => {
-                  if (
-                    key === modelDetails.target_variable &&
-                    modelDetails.task !== "Clustering"
-                  )
-                    return null;
+            ) : (
+              <div className="grid gap-6 sm:grid-cols-3">
+                {modelDetails.list_of_features &&
+                Object.keys(modelDetails.list_of_features).length > 0 ? (
+                  Object.keys(modelDetails.list_of_features).map((key) => {
+                    if (
+                      key === modelDetails.target_variable &&
+                      modelDetails.task !== "Clustering"
+                    )
+                      return null;
 
-                  const type = modelDetails.list_of_features[key];
-                  const placeholder = `Enter ${type} value`;
+                    const type = modelDetails.list_of_features[key];
+                    const placeholder = `Enter ${type} value`;
 
-                  if (type === "int64") {
-                    return (
-                      <div key={key}>
-                        <Label
-                          htmlFor={key}
-                          value={`Enter a value for ${key}`}
-                        />
-                        <TextInput
-                          id={key}
-                          name={key}
-                          type="number"
-                          placeholder={placeholder}
-                          value={formData[key] || ""}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                    );
-                  } else if (type === "float") {
-                    return (
-                      <div key={key}>
-                        <Label
-                          htmlFor={key}
-                          value={`Enter a value for ${key}`}
-                        />
-                        <TextInput
-                          id={key}
-                          name={key}
-                          type="number"
-                          step="any"
-                          placeholder={placeholder}
-                          value={formData[key] || ""}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                    );
-                  } else if (Array.isArray(type)) {
-                    return (
-                      <div key={key}>
-                        <Label
-                          htmlFor={key}
-                          value={`Select a value for ${key}`}
-                        />
-                        <select
-                          id={key}
-                          name={key}
-                          value={formData[key] || ""}
-                          onChange={handleInputChange}
-                          className="mt-1 block w-full rounded border border-gray-300 p-2"
-                        >
-                          <option value="">Select an option</option>
-                          {type.map((option: string, i: number) => (
-                            <option key={i} value={option}>
-                              {option}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    );
-                  } else if (type === "datetime") {
-                    return (
-                      <div key={key}>
-                        <Label
-                          htmlFor={key}
-                          value={`Enter a value for ${key}`}
-                        />
-                        <TextInput
-                          id={key}
-                          name={key}
-                          type="text"
-                          placeholder={placeholder}
-                          value={formData[key] || ""}
-                          onChange={handleInputChange}
-                        />
-                        {modelDetails.date_format && (
-                          <p className="mt-1 text-xs text-gray-500">
-                            Please enter the date in the format:{" "}
-                            <b>{modelDetails.date_format}</b>
-                          </p>
-                        )}
-                      </div>
-                    );
-                  } else {
-                    return (
-                      <div key={key}>
-                        <Label
-                          htmlFor={key}
-                          value={`Enter a value for ${key}`}
-                        />
-                        <TextInput
-                          id={key}
-                          name={key}
-                          type="text"
-                          placeholder={placeholder}
-                          value={formData[key] || ""}
-                          onChange={handleInputChange}
-                        />
-                      </div>
-                    );
-                  }
-                })
-              ) : (
-                <p>No features available.</p>
-              )}
-            </div>
-          )}
+                    if (type === "int64") {
+                      return (
+                        <div key={key}>
+                          <Label
+                            htmlFor={key}
+                            value={`Enter a value for ${key}`}
+                          />
+                          <TextInput
+                            id={key}
+                            name={key}
+                            type="number"
+                            placeholder={placeholder}
+                            value={formData[key] || ""}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                      );
+                    } else if (type === "float") {
+                      return (
+                        <div key={key}>
+                          <Label
+                            htmlFor={key}
+                            value={`Enter a value for ${key}`}
+                          />
+                          <TextInput
+                            id={key}
+                            name={key}
+                            type="number"
+                            step="any"
+                            placeholder={placeholder}
+                            value={formData[key] || ""}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                      );
+                    } else if (Array.isArray(type)) {
+                      return (
+                        <div key={key}>
+                          <Label
+                            htmlFor={key}
+                            value={`Select a value for ${key}`}
+                          />
+                          <select
+                            id={key}
+                            name={key}
+                            value={formData[key] || ""}
+                            onChange={handleInputChange}
+                            className="mt-1 block w-full rounded border border-gray-300 p-2"
+                          >
+                            <option value="">Select an option</option>
+                            {type.map((option: string, i: number) => (
+                              <option key={i} value={option}>
+                                {option}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    } else if (type === "datetime") {
+                      return (
+                        <div key={key}>
+                          <Label
+                            htmlFor={key}
+                            value={`Enter a value for ${key}`}
+                          />
+                          <TextInput
+                            id={key}
+                            name={key}
+                            type="text"
+                            placeholder={placeholder}
+                            value={formData[key] || ""}
+                            onChange={handleInputChange}
+                          />
+                          {modelDetails.date_format && (
+                            <p className="mt-1 text-xs text-gray-500">
+                              Please enter the date in the format:{" "}
+                              <b>{modelDetails.date_format}</b>
+                            </p>
+                          )}
+                        </div>
+                      );
+                    } else {
+                      return (
+                        <div key={key}>
+                          <Label
+                            htmlFor={key}
+                            value={`Enter a value for ${key}`}
+                          />
+                          <TextInput
+                            id={key}
+                            name={key}
+                            type="text"
+                            placeholder={placeholder}
+                            value={formData[key] || ""}
+                            onChange={handleInputChange}
+                          />
+                        </div>
+                      );
+                    }
+                  })
+                ) : (
+                  <p>No features available.</p>
+                )}
+              </div>
+            )}
 
-          <div className="mt-8 flex justify-end ">
-            <Button type="submit" className="px-6 ">
-              {modelDetails.task === "Clustering"
-                ? "Assign Cluster"
-                : modelDetails.task === "TimeSeries"
+            <div className="mt-8 flex justify-end ">
+              <Button type="submit" className="px-6 ">
+                {modelDetails.task === "Clustering"
+                  ? "Assign Cluster"
+                  : modelDetails.task === "TimeSeries"
                   ? "Generate Forecast"
                   : "Predict"}
-            </Button>
+              </Button>
+            </div>
+          </form>
+        ) : (
+          // Batch prediction UI
+          <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
+            {/* Clickable upload area */}
+            <label
+              htmlFor="batch-csv-upload"
+              className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg h-48 cursor-pointer transition hover:border-blue-400"
+            >
+              <HiCloudUpload className="text-4xl text-gray-400 mb-2" />
+              <span className="font-semibold text-gray-700">
+                Click to upload
+              </span>
+              <span className="text-sm text-gray-400 mt-1">
+                CSV (max 50MB)
+              </span>
+              <input
+                id="batch-csv-upload"
+                type="file"
+                accept=".csv"
+                onChange={handleBatchFileChange}
+                className="hidden"
+              />
+              {batchFile && (
+                <span className="mt-2 text-xs text-green-600">
+                  {batchFile.name}
+                </span>
+              )}
+            </label>
+            {/* Upload button outside the upload area */}
+            <div className="mt-4">
+              <Button
+                onClick={handleBatchPredict}
+                disabled={!batchFile}
+                className="w-full"
+              >
+                Upload CSV
+              </Button>
+            </div>
+            {batchResult && (
+              <div className="mt-4">
+                <pre className="bg-gray-100 p-2 rounded text-xs overflow-x-auto">
+                  {JSON.stringify(batchResult, null, 2)}
+                </pre>
+              </div>
+            )}
           </div>
-        </form>
+        )}
       </div>
 
       <Modal show={showModal} onClose={closeModal}>
@@ -611,10 +736,10 @@ export default function ClientModelPage() {
           {modalMessage.toLowerCase().includes("report")
             ? "Report Generation"
             : modelDetails.task === "Clustering"
-              ? "Cluster Assignment"
-              : modelDetails.task === "TimeSeries"
-                ? "Forecast Results"
-                : "Model Response"}
+            ? "Cluster Assignment"
+            : modelDetails.task === "TimeSeries"
+            ? "Forecast Results"
+            : "Model Response"}
         </Modal.Header>
         <Modal.Body>
           <div className="space-y-4">
