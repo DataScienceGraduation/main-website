@@ -28,7 +28,7 @@ export default function DashboardPage() {
   ];
 
   useEffect(() => {
-    if (!id) return;
+      if (!id) return;
     const token =
       typeof window !== "undefined" ? localStorage.getItem("token") : null;
     if (!token) {

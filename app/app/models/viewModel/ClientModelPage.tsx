@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Label, TextInput, Button, Modal } from "flowbite-react";
 
@@ -19,6 +19,7 @@ export default function ClientModelPage() {
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
   const [isGeneratingDashboard, setIsGeneratingDashboard] = useState(false);
   const [authError, setAuthError] = useState<boolean>(false);
+  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     const fetchModel = async () => {
@@ -301,7 +302,6 @@ export default function ClientModelPage() {
     setIsGeneratingDashboard(true);
     setAuthError(false);
     try {
-      // Start the chart suggestion task
       const token = localStorage.getItem("token");
       if (!token) {
         setAuthError(true);
@@ -310,6 +310,26 @@ export default function ClientModelPage() {
         setShowModal(true);
         return;
       }
+
+      // 1. Check if dashboard already exists
+      const checkRes = await fetch(
+        getAbsoluteUrl(`/aiapp/get-dashboard-by-model/?model_id=${id}`),
+        {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+      const checkData = await checkRes.json();
+      if (checkData.success) {
+        // Dashboard exists, redirect
+        router.push(`/dashboards/${id}`);
+        return;
+      }
+
+      // 2. If not, proceed to generate dashboard as before
       const response = await fetch(
         getAbsoluteUrl("/aiapp/start-suggest-charts/"),
         {
@@ -319,7 +339,7 @@ export default function ClientModelPage() {
             Authorization: `Bearer ${token}`,
           },
           body: JSON.stringify({ model_id: id }),
-        },
+        }
       );
       if (response.status === 401) {
         setAuthError(true);
@@ -331,46 +351,33 @@ export default function ClientModelPage() {
       const result = await response.json();
       if (!result.success || !result.task_id)
         throw new Error(
-          result.message || "Failed to start dashboard suggestion",
+          result.message || "Failed to start dashboard suggestion"
         );
 
       setModalMessage(
-        "Dashboard suggestion started! You will be redirected once the dashboard is ready.",
+        "Dashboard suggestion started! You will be redirected once the dashboard is ready."
       );
       setShowModal(true);
 
-      // Poll for completion
-      const poll = async () => {
-        const token = localStorage.getItem("token");
-        const statusRes = await fetch(
-          getAbsoluteUrl("/aiapp/get-suggest-charts-result/"),
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({ task_id: result.task_id }),
-          },
-        );
-        if (statusRes.status === 401) {
-          setAuthError(true);
-          setIsGeneratingDashboard(false);
-          setModalMessage("You must be logged in to generate a dashboard.");
-          setShowModal(true);
-          return;
-        }
-        const status = await statusRes.json();
-        if (status.status === "SUCCESS") {
-          router.push(`/dashboards/${id}`);
-        } else if (status.status === "FAILURE") {
-          setIsGeneratingDashboard(false);
-          setModalMessage("Dashboard suggestion failed.");
-        } else {
-          setTimeout(poll, 2000);
+      // Open WebSocket connection for real-time notification
+      const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+      const wsUrl = `${wsProtocol}://${window.location.hostname}:8000/ws/dashboard/${id}/`;
+      const ws = new window.WebSocket(wsUrl);
+      wsRef.current = ws;
+      ws.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "dashboard_ready" && data.model_id === id) {
+            ws.close();
+            router.push(`/dashboards/${id}`);
+          }
+        } catch (e) {
+          // Ignore parse errors
         }
       };
-      poll();
+      ws.onclose = () => {
+        wsRef.current = null;
+      };
     } catch (err: any) {
       setIsGeneratingDashboard(false);
       setModalMessage(err.message || "Dashboard suggestion failed.");
