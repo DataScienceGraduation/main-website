@@ -7,6 +7,20 @@ import { ChartMixed } from "flowbite-react-icons/outline";
 
 import { getAbsoluteUrl } from "../utils/url";
 
+const getReadableMetricName = (metric: string) => {
+  switch (metric) {
+    case "Metric.RMSE":
+      return "Root Mean Squared Error (RMSE)";
+    case "Metric.Accuracy":
+      return "Accuracy";
+    case "CustomClusteringScore":
+      return "Custom Clustering Score";
+    default:
+      // Fallback: prettify by splitting camel case or dots
+      return metric.replace(/([a-z])([A-Z])/g, "$1 $2").replace(/\./g, " ");
+  }
+};
+
 export default function ModelsSection() {
   const [models, setModels] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -211,7 +225,8 @@ export default function ModelsSection() {
                 <p className="mt-2 text-gray-500">{model.description}</p>
 
                 <p className="text-gray-500">
-                  Evaluation Metric: {model.evaluation_metric}
+                  Evaluation Metric:{" "}
+                  {getReadableMetricName(model.evaluation_metric)}
                 </p>
                 <p className="text-gray-500">
                   Metric Value:{" "}
