@@ -30,6 +30,9 @@ export default function ClientModelPage() {
   // Only allow batch prediction for non-TimeSeries models
   const allowBatchPrediction = modelDetails && modelDetails.task !== "TimeSeries";
 
+  const [existingReport, setExistingReport] = useState<any>(null);
+  const [existingDashboard, setExistingDashboard] = useState<boolean>(false);
+
   useEffect(() => {
     const fetchModel = async () => {
       try {
@@ -112,7 +115,59 @@ export default function ClientModelPage() {
       }
     };
 
+    const fetchExistingReport = async () => {
+      if (!id) return;
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      try {
+        const res = await fetch(getAbsoluteUrl(`/aiapp/get-latest-report-for-model/?model_id=${id}`), {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.ok) {
+          const result = await res.json();
+          if (result.success && result.report) {
+            setExistingReport(result.report);
+          } else {
+            setExistingReport(null);
+          }
+        } else {
+          setExistingReport(null);
+        }
+      } catch {
+        setExistingReport(null);
+      }
+    };
+
+    const fetchExistingDashboard = async () => {
+      if (!id) return;
+      const token = localStorage.getItem("token");
+      if (!token) return;
+      try {
+        const res = await fetch(getAbsoluteUrl(`/aiapp/get-dashboard-by-model/?model_id=${id}`), {
+          method: "GET",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        if (res.ok) {
+          const result = await res.json();
+          setExistingDashboard(!!result.success);
+        } else {
+          setExistingDashboard(false);
+        }
+      } catch {
+        setExistingDashboard(false);
+      }
+    };
+
     fetchModel();
+    fetchExistingReport();
+    fetchExistingDashboard();
   }, [id]);
 
   const handleInputChange = (
@@ -463,20 +518,38 @@ export default function ClientModelPage() {
                 charts, and business recommendations for this model.
               </p>
             </div>
-            <Button
-              onClick={handleGenerateReport}
-              disabled={isGeneratingReport}
-              className="bg-blue-600 px-6 hover:bg-blue-700"
-            >
-              {isGeneratingReport ? "Generating Report..." : "Generate Report"}
-            </Button>
-            <Button
-              onClick={handleGenerateDashboard}
-              disabled={isGeneratingDashboard}
-              className="ml-4 bg-blue-600 px-6 hover:bg-blue-700"
-            >
-              {isGeneratingDashboard ? "Generating Dashboard..." : "Dashboards"}
-            </Button>
+            {existingReport ? (
+              <Button
+                onClick={() => router.push(`/reports/${existingReport.id}`)}
+                className="bg-blue-600 px-6 hover:bg-blue-700"
+              >
+                View Report
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerateReport}
+                disabled={isGeneratingReport}
+                className="bg-blue-600 px-6 hover:bg-blue-700"
+              >
+                {isGeneratingReport ? "Generating Report..." : "Generate Report"}
+              </Button>
+            )}
+            {existingDashboard ? (
+              <Button
+                onClick={() => router.push(`/dashboards/${id}`)}
+                className="ml-4 bg-blue-600 px-6 hover:bg-blue-700"
+              >
+                View Dashboard
+              </Button>
+            ) : (
+              <Button
+                onClick={handleGenerateDashboard}
+                disabled={isGeneratingDashboard}
+                className="ml-4 bg-blue-600 px-6 hover:bg-blue-700"
+              >
+                {isGeneratingDashboard ? "Generating Dashboard..." : "Generate Dashboard"}
+              </Button>
+            )}
             <Button
               onClick={() => router.push(`/models/profiling?id=${id}`)}
               className="ml-4 bg-green-600 px-6 hover:bg-green-700"
