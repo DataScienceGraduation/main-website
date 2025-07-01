@@ -69,6 +69,11 @@ export default function MultiStepWizard() {
         setShowErrorModal(true);
         return;
       }
+      if (!description) {
+        setErrorMessage("Please enter a model description");
+        setShowErrorModal(true);
+        return;
+      }
     }
 
     if (currentStep < 3) setCurrentStep((prev) => prev + 1);
