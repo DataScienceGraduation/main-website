@@ -293,55 +293,30 @@ export default function ClientModelPage() {
 
       if (result.success) {
         if (result.async && result.task_id) {
-          // For async processing, we need to poll for the task status
           setModalMessage(
-            "Report generation started! You will be redirected once the report is ready.",
+            "Report generation started! You will be redirected once the report is ready."
           );
           setShowModal(true);
 
-          // Poll for task completion
-          const pollTaskStatus = async () => {
+          // Open WebSocket connection for real-time report notification
+          const wsProtocol = window.location.protocol === "https:" ? "wss" : "ws";
+          const wsUrl = `${wsProtocol}://${window.location.hostname}:8000/ws/report/${result.task_id}/`;
+          const ws = new window.WebSocket(wsUrl);
+          wsRef.current = ws;
+          ws.onmessage = (event) => {
             try {
-              const statusResponse = await fetch(
-                getAbsoluteUrl(`/aiapp/task-status/?task_id=${result.task_id}`),
-                {
-                  headers: {
-                    Authorization: `Bearer ${token}`,
-                  },
-                },
-              );
-
-              const statusResult = await statusResponse.json();
-              console.log("Task status response:", statusResult);
-
-              if (
-                statusResult.success &&
-                statusResult.status === "SUCCESS" &&
-                (statusResult.result || statusResult.report_id)
-              ) {
-                // Task completed successfully, redirect to report
-                const reportId = statusResult.result || statusResult.report_id;
-                console.log("Redirecting to report ID:", reportId);
-                router.push(`/reports/${reportId}`);
-              } else if (statusResult.status === "FAILURE") {
-                throw new Error(
-                  statusResult.error || "Report generation failed",
-                );
-              } else {
-                // Still processing, poll again after 2 seconds
-                setTimeout(pollTaskStatus, 15000);
+              const data = JSON.parse(event.data);
+              if (data.type === "report_ready" && data.task_id === result.task_id) {
+                ws.close();
+                router.push(`/reports/${data.report_id}`);
               }
-            } catch (error) {
-              console.error("Error polling task status:", error);
-              setModalMessage(
-                "Error checking report status. Please try again.",
-              );
-              setShowModal(true);
+            } catch (e) {
+              // Ignore parse errors
             }
           };
-
-          // Start polling
-          setTimeout(pollTaskStatus, 15000);
+          ws.onclose = () => {
+            wsRef.current = null;
+          };
         } else if (result.report_id) {
           // Synchronous processing completed
           router.push(`/reports/${result.report_id}`);
@@ -354,7 +329,7 @@ export default function ClientModelPage() {
     } catch (error) {
       console.error("Error generating report:", error);
       setModalMessage(
-        error instanceof Error ? error.message : "Error generating report",
+        error instanceof Error ? error.message : "Error generating report"
       );
       setShowModal(true);
     } finally {
