@@ -22,6 +22,10 @@ export default function ClientModelPage() {
   const [authError, setAuthError] = useState<boolean>(false);
   const wsRef = useRef<WebSocket | null>(null);
 
+  // New state for model sharing
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+
   // New state for prediction mode
   const [predictionMode, setPredictionMode] = useState<'single' | 'batch'>('single');
   const [batchFile, setBatchFile] = useState<File | null>(null);
@@ -243,6 +247,50 @@ export default function ClientModelPage() {
     setShowModal(false);
     setPlotImage(null);
     setPredictionData(null);
+  };
+
+  const handleShareModel = async () => {
+    if (!shareEmail) {
+      setModalMessage("Please enter an email address.");
+      setShowModal(true);
+      return;
+    }
+
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) {
+        setModalMessage("No authentication token found. Please log in again.");
+        setShowModal(true);
+        return;
+      }
+
+      const response: Response = await fetch(getAbsoluteUrl("/aiapp/share-model/"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          model_id: id,
+          email: shareEmail,
+        }),
+      });
+
+      const result: { success: boolean; message?: string } = await response.json();
+
+      if (result.success) {
+        setModalMessage(`Model successfully shared with ${shareEmail}!`);
+      } else {
+        setModalMessage(`Failed to share model: ${result.message || "Unknown error"}`);
+      }
+    } catch (error: unknown) {
+      console.error("Error sharing model:", error);
+      setModalMessage("Error sharing model. Please try again.");
+    } finally {
+      setShowShareModal(false); // Close the share modal
+      setShowModal(true); // Show the general message modal
+      setShareEmail(""); // Clear the email input
+    }
   };
 
   const downloadCSV = () => {
@@ -496,7 +544,7 @@ export default function ClientModelPage() {
             {existingReport ? (
               <Button
                 onClick={() => router.push(`/reports/${existingReport.id}`)}
-                className="bg-blue-600 px-6 hover:bg-blue-700"
+                className="bg-blue-600 w-40 h-14 hover:bg-blue-700 text-center flex items-center justify-center"
               >
                 View Report
               </Button>
@@ -504,7 +552,7 @@ export default function ClientModelPage() {
               <Button
                 onClick={handleGenerateReport}
                 disabled={isGeneratingReport}
-                className="bg-blue-600 px-6 hover:bg-blue-700"
+                className="bg-blue-500 w-40 h-14 hover:bg-blue-950 text-center flex items-center justify-center"
               >
                 {isGeneratingReport ? "Generating Report..." : "Generate Report"}
               </Button>
@@ -512,7 +560,7 @@ export default function ClientModelPage() {
             {existingDashboard ? (
               <Button
                 onClick={() => router.push(`/dashboards/${id}`)}
-                className="ml-4 bg-blue-600 px-6 hover:bg-blue-700"
+                className="ml-4 bg-blue-600 w-40 h-14  hover:bg-blue-950 text-center flex items-center justify-center"
               >
                 View Dashboard
               </Button>
@@ -520,16 +568,22 @@ export default function ClientModelPage() {
               <Button
                 onClick={handleGenerateDashboard}
                 disabled={isGeneratingDashboard}
-                className="ml-4 bg-blue-600 px-6 hover:bg-blue-700"
+                className="ml-4 bg-blue-700 w-40 h-14 hover:bg-blue-950 text-center flex items-center justify-center"
               >
                 {isGeneratingDashboard ? "Generating Dashboard..." : "Generate Dashboard"}
               </Button>
             )}
             <Button
               onClick={() => router.push(`/models/profiling?id=${id}`)}
-              className="ml-4 bg-green-600 px-6 hover:bg-green-700"
+              className="ml-4 bg-blue-800 w-40 h-14 hover:bg-blue-950 text-center flex items-center justify-center"
             >
               Profiling
+            </Button>
+            <Button
+              onClick={() => setShowShareModal(true)}
+              className="ml-4 bg-blue-950 w-40 h-14 hover:bg-blue-950 text-center flex items-center justify-center"
+            >
+              Share Model
             </Button>
           </div>
         </div>
@@ -559,7 +613,7 @@ export default function ClientModelPage() {
               of the identified clusters. The model&apos;s performance is
               measured using a custom score of Silhouette score and
               Davies-Bouldin Index: {" "}
-              {modelDetails.evaluation_metric_value.toFixed(4)}
+              {(modelDetails.evaluation_metric_value * 100).toFixed(2) + '%'}
             </p>
           </div>
         )}
@@ -825,6 +879,30 @@ export default function ClientModelPage() {
           You must be logged in to generate a dashboard.
         </div>
       )}
+
+      {/* Share Model Modal */}
+      <Modal show={showShareModal} onClose={() => setShowShareModal(false)}>
+        <Modal.Header>Share Model</Modal.Header>
+        <Modal.Body>
+          <div className="space-y-4">
+            <p>Enter the email of the user you want to share this model with:</p>
+            <TextInput
+              type="email"
+              placeholder="user@example.com"
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
+              required
+            />
+            <Button
+              onClick={handleShareModel}
+              disabled={!shareEmail}
+              className="w-full"
+            >
+              Share
+            </Button>
+          </div>
+        </Modal.Body>
+      </Modal>
     </div>
   );
 }
