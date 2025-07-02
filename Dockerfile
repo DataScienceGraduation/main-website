@@ -1,7 +1,7 @@
 # Dockerfile
 
 # Base image for building the frontend
-FROM node:20-slim AS base
+FROM node:18-slim AS base
 
 # Install dependencies
 RUN apt-get update && apt-get install -y openssl
@@ -22,7 +22,7 @@ COPY . .
 RUN npm run build
 
 # Production image
-FROM node:20-slim AS production
+FROM node:18-slim AS production
 
 # Set working directory
 WORKDIR /app
