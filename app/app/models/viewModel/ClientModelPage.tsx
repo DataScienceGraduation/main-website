@@ -825,7 +825,7 @@ export default function ClientModelPage() {
                 disabled={!batchFile}
                 className="w-full"
               >
-                Upload CSV
+                Confirm Uploaded CSV File
               </Button>
             </div>
             {batchResult && (
