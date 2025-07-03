@@ -9,6 +9,8 @@ import {
   Button,
   Modal,
   Label,
+  Table,
+  Alert,
 } from "flowbite-react";
 import { AnimatePresence, motion } from "motion/react";
 import ProtectedPage from "@/app/components/ProtectedPage";
@@ -50,9 +52,11 @@ export default function MultiStepWizard() {
   const [dbPassword, setDbPassword] = useState("");
   const [tables, setTables] = useState<string[]>([]);
   const [selectedTable, setSelectedTable] = useState("");
-  const [preview, setPreview] = useState("");
+  const [preview, setPreview] = useState<any[]>([]);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-
+  const [connectionStatus, setConnectionStatus] = useState<
+    "success" | "error" | "pending" | "idle"
+  >("idle");
 
   // Common date formats that match pandas datetime parsing
   const dateFormats = [
@@ -178,28 +182,29 @@ export default function MultiStepWizard() {
   };
 
   const handleTestConnection = async () => {
+    setConnectionStatus("pending");
     const url = getAbsoluteUrl("/api/db_connection/test_connection/");
     const token = localStorage.getItem("token");
     const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-            host: dbHost,
-            port: dbPort,
-            database: dbName,
-            user: dbUser,
-            password: dbPassword,
-        }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        host: dbHost,
+        port: dbPort,
+        database: dbName,
+        user: dbUser,
+        password: dbPassword,
+      }),
     });
     const data = await response.json();
     if (data.success) {
-        alert("Connection successful!");
+      setConnectionStatus("success");
     } else {
-        setErrorMessage(data.message);
-        setShowErrorModal(true);
+      setConnectionStatus("error");
+      setErrorMessage(data.message);
     }
   };
 
@@ -207,25 +212,25 @@ export default function MultiStepWizard() {
     const url = getAbsoluteUrl("/api/db_connection/list_tables/");
     const token = localStorage.getItem("token");
     const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-            host: dbHost,
-            port: dbPort,
-            database: dbName,
-            user: dbUser,
-            password: dbPassword,
-        }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        host: dbHost,
+        port: dbPort,
+        database: dbName,
+        user: dbUser,
+        password: dbPassword,
+      }),
     });
     const data = await response.json();
     if (data.success) {
-        setTables(data.tables);
+      setTables(data.tables);
     } else {
-        setErrorMessage(data.message);
-        setShowErrorModal(true);
+      setErrorMessage(data.message);
+      setShowErrorModal(true);
     }
   };
 
@@ -233,27 +238,37 @@ export default function MultiStepWizard() {
     const url = getAbsoluteUrl("/api/db_connection/preview_table/");
     const token = localStorage.getItem("token");
     const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-            host: dbHost,
-            port: dbPort,
-            database: dbName,
-            user: dbUser,
-            password: dbPassword,
-            table: table,
-        }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        host: dbHost,
+        port: dbPort,
+        database: dbName,
+        user: dbUser,
+        password: dbPassword,
+        table: table,
+      }),
     });
     const data = await response.json();
     if (data.success) {
-        setPreview(data.preview);
-        setShowPreviewModal(true);
+      // Parse CSV preview
+      const rows = data.preview.split("\n");
+      const headers = rows[0].split(",");
+      const body = rows.slice(1).map((row:any) => {
+        const values = row.split(",");
+        return headers.reduce((obj:any, header:any, index:any) => {
+          obj[header] = values[index];
+          return obj;
+        }, {});
+      });
+      setPreview(body);
+      setShowPreviewModal(true);
     } else {
-        setErrorMessage(data.message);
-        setShowErrorModal(true);
+      setErrorMessage(data.message);
+      setShowErrorModal(true);
     }
   };
 
@@ -261,32 +276,32 @@ export default function MultiStepWizard() {
     const url = getAbsoluteUrl("/api/db_connection/load_table/");
     const token = localStorage.getItem("token");
     const response = await fetch(url, {
-        method: "POST",
-        headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-            host: dbHost,
-            port: dbPort,
-            database: dbName,
-            user: dbUser,
-            password: dbPassword,
-            table: selectedTable,
-        }),
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        host: dbHost,
+        port: dbPort,
+        database: dbName,
+        user: dbUser,
+        password: dbPassword,
+        table: selectedTable,
+      }),
     });
     const data = await response.json();
     if (data.success) {
-        setTargetVariables(data.data);
-        if (data.datetime_columns) {
-            setDatetimeColumns(data.datetime_columns);
-        }
-        setId(data.id);
-        setShowSuccessModal(true);
-        setShowDbModal(false);
+      setTargetVariables(data.data);
+      if (data.datetime_columns) {
+        setDatetimeColumns(data.datetime_columns);
+      }
+      setId(data.id);
+      setShowSuccessModal(true);
+      setShowDbModal(false);
     } else {
-        setErrorMessage(data.message);
-        setShowErrorModal(true);
+      setErrorMessage(data.message);
+      setShowErrorModal(true);
     }
   };
 
@@ -664,43 +679,91 @@ export default function MultiStepWizard() {
         </Modal>
 
         <Modal show={showDbModal} onClose={() => setShowDbModal(false)}>
-            <Modal.Header>Load from Database</Modal.Header>
-            <Modal.Body>
-                <div className="space-y-4">
-                    <TextInput placeholder="Host" value={dbHost} onChange={(e) => setDbHost(e.target.value)} />
-                    <TextInput placeholder="Port" value={dbPort} onChange={(e) => setDbPort(e.target.value)} />
-                    <TextInput placeholder="Database" value={dbName} onChange={(e) => setDbName(e.target.value)} />
-                    <TextInput placeholder="User" value={dbUser} onChange={(e) => setDbUser(e.target.value)} />
-                    <TextInput type="password" placeholder="Password" value={dbPassword} onChange={(e) => setDbPassword(e.target.value)} />
-                    <div className="flex space-x-2">
-                        <Button onClick={handleTestConnection}>Test Connection</Button>
-                        <Button onClick={handleListTables}>List Tables</Button>
-                    </div>
-                    {tables.length > 0 && (
-                        <Select onChange={(e) => setSelectedTable(e.target.value)}>
-                            <option>Select a table</option>
-                            {tables.map((table) => (
-                                <option key={table} value={table}>
-                                    {table}
-                                </option>
-                            ))}
-                        </Select>
-                    )}
-                    {selectedTable && (
-                        <div className="flex space-x-2">
-                            <Button onClick={() => handlePreviewTable(selectedTable)}>Preview Table</Button>
-                            <Button onClick={handleLoadTable}>Load Table</Button>
-                        </div>
-                    )}
+          <Modal.Header>Load from Database</Modal.Header>
+          <Modal.Body>
+            <div className="space-y-4">
+              <TextInput
+                placeholder="Host"
+                value={dbHost}
+                onChange={(e) => setDbHost(e.target.value)}
+              />
+              <TextInput
+                placeholder="Port"
+                value={dbPort}
+                onChange={(e) => setDbPort(e.target.value)}
+              />
+              <TextInput
+                placeholder="Database"
+                value={dbName}
+                onChange={(e) => setDbName(e.target.value)}
+              />
+              <TextInput
+                placeholder="User"
+                value={dbUser}
+                onChange={(e) => setDbUser(e.target.value)}
+              />
+              <TextInput
+                type="password"
+                placeholder="Password"
+                value={dbPassword}
+                onChange={(e) => setDbPassword(e.target.value)}
+              />
+              <div className="flex space-x-2">
+                <Button onClick={handleTestConnection}>Test Connection</Button>
+                <Button onClick={handleListTables}>List Tables</Button>
+              </div>
+              {connectionStatus === "success" && (
+                <Alert color="success">Connection successful!</Alert>
+              )}
+              {connectionStatus === "error" && (
+                <Alert color="failure">{errorMessage}</Alert>
+              )}
+              {tables.length > 0 && (
+                <Select onChange={(e) => setSelectedTable(e.target.value)}>
+                  <option>Select a table</option>
+                  {tables.map((table) => (
+                    <option key={table} value={table}>
+                      {table}
+                    </option>
+                  ))}
+                </Select>
+              )}
+              {selectedTable && (
+                <div className="flex space-x-2">
+                  <Button onClick={() => handlePreviewTable(selectedTable)}>
+                    Preview Table
+                  </Button>
+                  <Button onClick={handleLoadTable}>Load Table</Button>
                 </div>
-            </Modal.Body>
+              )}
+            </div>
+          </Modal.Body>
         </Modal>
 
-        <Modal show={showPreviewModal} onClose={() => setShowPreviewModal(false)}>
-            <Modal.Header>Table Preview</Modal.Header>
-            <Modal.Body>
-                <pre>{preview}</pre>
-            </Modal.Body>
+        <Modal
+          show={showPreviewModal}
+          onClose={() => setShowPreviewModal(false)}
+        >
+          <Modal.Header>Table Preview</Modal.Header>
+          <Modal.Body>
+            <Table>
+              <Table.Head>
+                {preview.length > 0 &&
+                  Object.keys(preview[0]).map((header) => (
+                    <Table.HeadCell key={header}>{header}</Table.HeadCell>
+                  ))}
+              </Table.Head>
+              <Table.Body>
+                {preview.map((row, i) => (
+                  <Table.Row key={i}>
+                    {Object.values(row).map((cell: any, j) => (
+                      <Table.Cell key={j}>{cell}</Table.Cell>
+                    ))}
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table>
+          </Modal.Body>
         </Modal>
       </div>
     </ProtectedPage>
