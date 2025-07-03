@@ -41,6 +41,19 @@ export default function MultiStepWizard() {
   const [dateFormat, setDateFormat] = useState("");
   const [datetimeColumns, setDatetimeColumns] = useState<string[]>([]);
 
+  // DB Modal
+  const [showDbModal, setShowDbModal] = useState(false);
+  const [dbHost, setDbHost] = useState("");
+  const [dbPort, setDbPort] = useState("");
+  const [dbName, setDbName] = useState("");
+  const [dbUser, setDbUser] = useState("");
+  const [dbPassword, setDbPassword] = useState("");
+  const [tables, setTables] = useState<string[]>([]);
+  const [selectedTable, setSelectedTable] = useState("");
+  const [preview, setPreview] = useState("");
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+
+
   // Common date formats that match pandas datetime parsing
   const dateFormats = [
     { value: "%d/%m/%y", label: "DD/MM/YY" },
@@ -164,6 +177,119 @@ export default function MultiStepWizard() {
     }
   };
 
+  const handleTestConnection = async () => {
+    const url = getAbsoluteUrl("/api/db_connection/test_connection/");
+    const token = localStorage.getItem("token");
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            host: dbHost,
+            port: dbPort,
+            database: dbName,
+            user: dbUser,
+            password: dbPassword,
+        }),
+    });
+    const data = await response.json();
+    if (data.success) {
+        alert("Connection successful!");
+    } else {
+        setErrorMessage(data.message);
+        setShowErrorModal(true);
+    }
+  };
+
+  const handleListTables = async () => {
+    const url = getAbsoluteUrl("/api/db_connection/list_tables/");
+    const token = localStorage.getItem("token");
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            host: dbHost,
+            port: dbPort,
+            database: dbName,
+            user: dbUser,
+            password: dbPassword,
+        }),
+    });
+    const data = await response.json();
+    if (data.success) {
+        setTables(data.tables);
+    } else {
+        setErrorMessage(data.message);
+        setShowErrorModal(true);
+    }
+  };
+
+  const handlePreviewTable = async (table: string) => {
+    const url = getAbsoluteUrl("/api/db_connection/preview_table/");
+    const token = localStorage.getItem("token");
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            host: dbHost,
+            port: dbPort,
+            database: dbName,
+            user: dbUser,
+            password: dbPassword,
+            table: table,
+        }),
+    });
+    const data = await response.json();
+    if (data.success) {
+        setPreview(data.preview);
+        setShowPreviewModal(true);
+    } else {
+        setErrorMessage(data.message);
+        setShowErrorModal(true);
+    }
+  };
+
+  const handleLoadTable = async () => {
+    const url = getAbsoluteUrl("/api/db_connection/load_table/");
+    const token = localStorage.getItem("token");
+    const response = await fetch(url, {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+            host: dbHost,
+            port: dbPort,
+            database: dbName,
+            user: dbUser,
+            password: dbPassword,
+            table: selectedTable,
+        }),
+    });
+    const data = await response.json();
+    if (data.success) {
+        setTargetVariables(data.data);
+        if (data.datetime_columns) {
+            setDatetimeColumns(data.datetime_columns);
+        }
+        setId(data.id);
+        setShowSuccessModal(true);
+        setShowDbModal(false);
+    } else {
+        setErrorMessage(data.message);
+        setShowErrorModal(true);
+    }
+  };
+
   return (
     <ProtectedPage>
       <div className="mx-auto px-4 py-8">
@@ -272,12 +398,17 @@ export default function MultiStepWizard() {
                           />
                         </Label>
                       </div>
-                      <Button
-                        onClick={handleFileUpload}
-                        disabled={!file || isLocked}
-                      >
-                        {isLocked ? "Uploading..." : "Upload CSV"}
-                      </Button>
+                      <div className="flex space-x-2">
+                        <Button
+                          onClick={handleFileUpload}
+                          disabled={!file || isLocked}
+                        >
+                          {isLocked ? "Uploading..." : "Upload CSV"}
+                        </Button>
+                        <Button onClick={() => setShowDbModal(true)}>
+                          Load from database
+                        </Button>
+                      </div>
                     </div>
                     <div className="grid gap-4 md:grid-cols-2">
                       <TextInput
@@ -530,6 +661,46 @@ export default function MultiStepWizard() {
               Close
             </Button>
           </Modal.Footer>
+        </Modal>
+
+        <Modal show={showDbModal} onClose={() => setShowDbModal(false)}>
+            <Modal.Header>Load from Database</Modal.Header>
+            <Modal.Body>
+                <div className="space-y-4">
+                    <TextInput placeholder="Host" value={dbHost} onChange={(e) => setDbHost(e.target.value)} />
+                    <TextInput placeholder="Port" value={dbPort} onChange={(e) => setDbPort(e.target.value)} />
+                    <TextInput placeholder="Database" value={dbName} onChange={(e) => setDbName(e.target.value)} />
+                    <TextInput placeholder="User" value={dbUser} onChange={(e) => setDbUser(e.target.value)} />
+                    <TextInput type="password" placeholder="Password" value={dbPassword} onChange={(e) => setDbPassword(e.target.value)} />
+                    <div className="flex space-x-2">
+                        <Button onClick={handleTestConnection}>Test Connection</Button>
+                        <Button onClick={handleListTables}>List Tables</Button>
+                    </div>
+                    {tables.length > 0 && (
+                        <Select onChange={(e) => setSelectedTable(e.target.value)}>
+                            <option>Select a table</option>
+                            {tables.map((table) => (
+                                <option key={table} value={table}>
+                                    {table}
+                                </option>
+                            ))}
+                        </Select>
+                    )}
+                    {selectedTable && (
+                        <div className="flex space-x-2">
+                            <Button onClick={() => handlePreviewTable(selectedTable)}>Preview Table</Button>
+                            <Button onClick={handleLoadTable}>Load Table</Button>
+                        </div>
+                    )}
+                </div>
+            </Modal.Body>
+        </Modal>
+
+        <Modal show={showPreviewModal} onClose={() => setShowPreviewModal(false)}>
+            <Modal.Header>Table Preview</Modal.Header>
+            <Modal.Body>
+                <pre>{preview}</pre>
+            </Modal.Body>
         </Modal>
       </div>
     </ProtectedPage>
