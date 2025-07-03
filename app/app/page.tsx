@@ -555,32 +555,34 @@ export default function ModelsSection() {
         {inProgressModels.length === 0 ? (
           <p>No in-progress models.</p>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
-            {inProgressModels.map((model) => (
+            <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+            {inProgressModels
+              .filter((model) => model.status.toLowerCase() !== "failed")
+              .map((model) => (
               <Card key={model.id} className="flex flex-col justify-between">
                 <div className="flex items-start justify-between">
-                  <h3 className="text-xl font-semibold">{model.name}</h3>
-                  <Badge color={getBadgeColor(model.status)}>
-                    {model.status}
-                  </Badge>
+                <h3 className="text-xl font-semibold">{model.name}</h3>
+                <Badge color={getBadgeColor(model.status)}>
+                  {model.status}
+                </Badge>
                 </div>
                 <p className="mt-2 text-gray-500">{model.description}</p>
                 <div className="mt-4 w-40">
-                  <Badge
-                    className="flex w-40 flex-row items-end justify-start gap-2 px-3 py-1"
-                    color="info"
-                  >
-                    <div className="flex items-end gap-2">
-                      {getTaskIcon(model.task)}
-                      <span className="size-5 whitespace-nowrap">
-                        {model.task}
-                      </span>
-                    </div>
-                  </Badge>
+                <Badge
+                  className="flex w-40 flex-row items-end justify-start gap-2 px-3 py-1"
+                  color="info"
+                >
+                  <div className="flex items-end gap-2">
+                  {getTaskIcon(model.task)}
+                  <span className="size-5 whitespace-nowrap">
+                    {model.task}
+                  </span>
+                  </div>
+                </Badge>
                 </div>
               </Card>
-            ))}
-          </div>
+              ))}
+            </div>
         )}
       </section>
 
