@@ -27,7 +27,7 @@ export default function ClientModelPage() {
   const [shareEmail, setShareEmail] = useState("");
 
   // New state for prediction mode
-  const [predictionMode, setPredictionMode] = useState<'single' | 'batch'>('single');
+  const [predictionMode, setPredictionMode] = useState<'single' | 'batch' | 'api'>('single');
   const [batchFile, setBatchFile] = useState<File | null>(null);
   const [batchResult, setBatchResult] = useState<any>(null);
 
@@ -603,6 +603,12 @@ export default function ClientModelPage() {
             >
               Batch Prediction
             </Button>
+            <Button
+              color={predictionMode === 'api' ? 'primary' : 'gray'}
+              onClick={() => setPredictionMode('api')}
+            >
+              API Prediction
+            </Button>
           </div>
         )}
 
@@ -790,7 +796,7 @@ export default function ClientModelPage() {
               </Button>
             </div>
           </form>
-        ) : (
+        ) : predictionMode === 'batch' ? (
           // Batch prediction UI
           <div className="max-w-md mx-auto bg-white p-6 rounded shadow">
             {/* Clickable upload area */}
@@ -835,6 +841,45 @@ export default function ClientModelPage() {
                 </pre>
               </div>
             )}
+          </div>
+        ) : (
+          // API Prediction UI
+          <div className="mt-4">
+            <h3 className="text-lg font-medium text-gray-900">API Prediction</h3>
+            <p className="mt-1 text-sm text-gray-600">
+              Use the following code snippet to make predictions with your model programmatically.
+            </p>
+            <div className="mt-4">
+              <pre className="bg-gray-100 p-4 rounded">
+                <code>
+                  {`
+fetch('${getAbsoluteUrl('/api/infer/')}', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_API_KEY'
+  },
+  body: JSON.stringify({
+    id: ${modelDetails.id},
+    data: {
+      // Your feature data here, for example:
+      // "feature1": value1,
+      // "feature2": value2
+    }
+  })
+})
+.then(response => response.json())
+.then(data => console.log(data))
+.catch(error => console.error('Error:', error));
+`}
+                </code>
+              </pre>
+            </div>
+            <div className="mt-4">
+              <a href="/models/api" className="text-indigo-600 hover:text-indigo-900">
+                Manage your API keys
+              </a>
+            </div>
           </div>
         )}
       </div>
