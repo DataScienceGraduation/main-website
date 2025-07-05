@@ -436,7 +436,7 @@ export default function ModelsSection() {
     return <LandingPage />;
   }
 
-  const inProgressModels = models.filter((model) => model.status !== "Done");
+  const inProgressModels = models.filter((model) => model.status.toLowerCase() !== "done");
   const finishedModels = models.filter((model) => model.status === "Done");
 
   const getBadgeColor = (status: string) => {
