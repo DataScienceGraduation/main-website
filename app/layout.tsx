@@ -18,25 +18,7 @@ import { useRouter,usePathname } from "next/navigation";
 
 const inter = Inter({ subsets: ["latin"] });
 
-export const metadata = {
-  title: {
-    default: 'SymplifAI - AutoML Platform',
-    template: '%s | SymplifAI',
-  },
-  description: 'An automated machine learning platform for everyone.',
-  openGraph: {
-    title: 'SymplifAI - AutoML Platform',
-    description: 'An automated machine learning platform for everyone.',
-    images: [
-      {
-        url: '/logo.svg',
-        width: 800,
-        height: 600,
-        alt: 'SymplifAI Logo',
-      },
-    ],
-  },
-};
+
 
 export default function RootLayout({
   children,

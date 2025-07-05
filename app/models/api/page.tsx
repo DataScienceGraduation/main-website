@@ -11,10 +11,6 @@ interface ApiKey {
   created_at: string;
 }
 
-export const metadata = {
-  title: 'API Keys',
-};
-
 export default function ApiKeysPage() {
   const [keys, setKeys] = useState<ApiKey[]>([]);
   const [newKeyName, setNewKeyName] = useState('');
