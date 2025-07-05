@@ -165,7 +165,7 @@ export default function ApiKeysPage() {
       <Modal show={showModal} onClose={() => setShowModal(false)}>
         <Modal.Header>Confirm Deletion</Modal.Header>
         <Modal.Body>
-          <p>Are you sure you want to delete the key "{keyToDelete?.name}"?</p>
+          <p>Are you sure you want to delete the key &quot;{keyToDelete?.name}&quot;?</p>
         </Modal.Body>
         <Modal.Footer>
           <Button color="failure" onClick={handleDeleteKey}>

@@ -49,7 +49,6 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/logo.svg" type="image/svg+xml" />
       </head>
       <body className={inter.className}>
         {/* Only show Navbar if not in iframe and not login page */}

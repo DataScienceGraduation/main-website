@@ -557,7 +557,7 @@ export default function ModelsSection() {
         ) : (
             <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
             {inProgressModels
-              .filter((model) => model.status.toLowerCase() !== "failed" && model.status.toLowerCase() !== "data loaded")
+              .filter((model) => model.status.toLowerCase() !== "failed" || model.status.toLowerCase() !== "data loaded")
               .map((model) => (
               <Card key={model.id} className="flex flex-col justify-between">
                 <div className="flex items-start justify-between">
